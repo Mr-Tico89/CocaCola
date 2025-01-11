@@ -71,7 +71,7 @@ async function loadTableData(containerId, tabName, tableName = null) {
 function createFilterSelect(column, data, columns, table) {
     const select = document.createElement('select');
     select.classList.add('filter-select');
-    select.innerHTML = '<option value="">▼</option>'; // Default symbol
+    select.innerHTML = '<option value=""> ▼ </option>'; // Default symbol
 
     const uniqueValues = [...new Set(data.map(row => row[column]))];
     uniqueValues.forEach(value => {
@@ -81,7 +81,11 @@ function createFilterSelect(column, data, columns, table) {
         select.appendChild(option);
     });
 
-    select.onchange = () => filterTable(table, columns);
+    select.onchange = () => {
+        filterTable(table, columns);
+        // Restablecer la selección al valor por defecto
+        select.value = ''
+    };
     return select;
 }
 
@@ -90,15 +94,24 @@ function createEditableCell(row, column, data, rowIndex) {
     const cellValue = row[column] || ''; // Handle missing values
 
     if (column === 'observaciones') {
+        if (!td) {
+            console.error('td is not defined or is not a valid element');
+            return;
+        }
+    
         const input = document.createElement('input');
         input.type = 'text';
         input.placeholder = 'Edit here';
-        input.value = cellValue.toUpperCase();
+        input.value = cellValue ? cellValue.toUpperCase() : '';
         input.addEventListener('input', (e) => {
             e.target.value = e.target.value.toUpperCase();
         });
         input.addEventListener('blur', () => {
-            data[rowIndex][column] = input.value;
+            if (data && data[rowIndex]) {
+                data[rowIndex][column] = input.value;
+            } else {
+                console.error('data or data[rowIndex] is not defined');
+            }
         });
         td.appendChild(input);
     } 
@@ -109,6 +122,7 @@ function createEditableCell(row, column, data, rowIndex) {
             const option = document.createElement('option');
             option.value = optionValue;
             option.textContent = optionValue;
+            
             if (cellValue === optionValue) {
                 option.selected = true;
             }

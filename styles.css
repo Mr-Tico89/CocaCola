@@ -33,29 +33,16 @@
 .tab button.active {
     background-color: #ccc;
 }
+
 .tabcontent {
     display: none;
     padding: 6px 12px;
     border: 1px solid #ccc;
     border-top: none;
 }
-.table-container {
-    overflow-x: auto; /* Permitir desplazamiento horizontal */
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-th, td {
-    border: 1px solid #ddd;
-}
-.editable {
-    background-color: #f9f9f9;
-    border: 1px solid #ccc;
-    padding: 4px;
-    cursor: pointer;
-}
-.table-select {
+
+/*Select para ver tablas*/
+.table-select { 
     width: 30%;
     padding: 8px;
     border: 1px solid #ccc;
@@ -64,10 +51,14 @@ th, td {
     font-size: 16px;
     margin-bottom: 10px;
 }
+
 #table-container {
     margin-top: 15px; /* Espacio entre el select y el contenedor de la tabla */
 }
 
+#averias-container {
+    margin-top: 15px; /* Espacio entre el select y el contenedor de la tabla */
+}
 #extra-button {
     margin-top: 10px;
     margin-left: 5px;
@@ -82,32 +73,31 @@ th, td {
 #extra-button:hover {
     background-color: #c70000;
 }
+
 /* General table styling */
 .editable-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 20px 0;
     font-size: 16px;
     text-align: left;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
     table-layout: auto; /* Ajusta automáticamente el ancho de las columnas */
 }
-/* En caso de desbordamiento horizontal */
-.editable-table-container {
-    overflow-x: auto; /* Permite scroll horizontal si es necesario */
-    -webkit-overflow-scrolling: touch; /* Mejor experiencia en dispositivos táctiles */
-}
 
 .editable-table th, .editable-table td {
-    padding: 12px 19px;
+    padding: 8px 8px;
     border: 1px solid #ddd;
 }
 
 /* Header styling */
 .editable-table-header th {
-    background-color: #b3b3b3;
+    background-color: #a3a3a3;
     color: white;
     font-weight: bold;
+    font-size: 19px; /* Texto legible */
+    text-align: center;
+    padding-right: 100%;
+    padding-bottom: 8px; /* Espacio entre el texto y el filtro */
 }
 
 /* Body styling */
@@ -115,40 +105,40 @@ th, td {
     background-color: #f9f9f9;
 }
 
-.editable-table-body tr:hover {
-    background-color: #f1f1f1;
-    cursor: pointer;
-}
-
-/* Input and select styles */
-.editable-table input[type="text"],
-.editable-table select {
-    width: auto;
-    padding: auto;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: content-box;
-    font-size: 14px;
-}
-
 /* Filter select styling */
 .filter-select {
-    width: auto;
-    border: none;
-    background: transparent;
-    font-size: 14px;
+    position: relative;
+    width: 24px; /* Ajusta automáticamente el ancho al contenido */
+    height: 24px;
+    border: 1px solid #ccc; /* Añade un borde claro */
+    border-radius: 4px; /* Bordes redondeados */
+    border: transparent; /* Fondo blanco */
+    font-size: 16px; /* Texto legible */
+    padding: 4px; /* Espaciado para el ícono y texto */
+    appearance: none; /* Oculta el ícono por defecto del navegador */
+    cursor: pointer; /* Cambia el cursor al pasar sobre el select */
+    bottom: 0;
     text-align: center;
-    appearance: none; /* Oculta el ícono de select por defecto */
     outline: none;
+
 }
-.filter-select option {
-    background: #cecece;
-    color: #333;
+.filter-select::after {
+    content: '▼';
+    font-size: 16px;
+    color: #555;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none; /* El ícono no puede ser clickeado */
 }
-/* Make the table responsive */
-@media (max-width: 768px) {
-    .editable-table th, .editable-table td {
-        font-size: 14px;
-        padding: 8px;
-    }
+
+/* Hover y enfoque */
+.filter-select:hover {
+    border-color: #888; /* Cambia el color del borde */
+}
+
+.filter-select:focus {
+    border-color: #0056b3; /* Indica enfoque */
+    outline: none; /* Elimina el contorno por defecto */
 }
