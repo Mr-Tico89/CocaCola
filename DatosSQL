@@ -1,0 +1,92 @@
+CREATE SCHEMA Datos_Maquinaria;
+
+CREATE TABLE DATASHEEET_FALLAS_SEMANALES (
+    Machine_Name VARCHAR (255),
+    Days_in_Calendar_DateTime DATE,
+    Shift_Name VARCHAR,
+    ReasonState_Group1 VARCHAR,
+    ReasonState_Group2 VARCHAR,
+    ReasonState_Name VARCHAR (255),
+    Reason_Occurrences VARCHAR (20),
+    Scheduled_Hours VARCHAR (255)
+);
+
+
+CREATE TEMP TABLE temp_datasheet_fallas_semanales AS
+SELECT * FROM DATASHEEET_FALLAS_SEMANALES LIMIT 0;
+
+\copy temp_datasheet_fallas_semanales FROM 'C:\Users\matias\Desktop\cocacola\DATASHEEETFALLASSEMANALES (10).csv' WITH DELIMITER ',' CSV HEADER;
+
+
+CREATE OR REPLACE FUNCTION replace_special_characters()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.Machine_Name := REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(NEW.Machine_Name, '·', 'Ú'), 'Ý', 'í'), 'ß', 'á'), 'Þ', 'é'), 'à', 'ó'), 'ã', 'ñ');
+    NEW.ReasonState_Group1 := REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(NEW.ReasonState_Group1, '·', 'Ú'), 'Ý', 'í'), 'ß', 'á'), 'Þ', 'é'), 'à', 'ó'), 'ã', 'ñ');
+    NEW.ReasonState_Group2 := REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(NEW.ReasonState_Group2, '·', 'Ú'), 'Ý', 'í'), 'ß', 'á'), 'Þ', 'é'), 'à', 'ó'), 'ã', 'ñ');
+    NEW.ReasonState_Name := REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(NEW.ReasonState_Name, '·', 'Ú'), 'Ý', 'í'), 'ß', 'á'), 'Þ', 'é'), 'à', 'ó'), 'ã', 'ñ');
+    NEW.Shift_Name := REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(NEW.Shift_Name, '·', 'Ú'), 'Ý', 'í'), 'ß', 'á'), 'Þ', 'é'), 'à', 'ó'), 'ã', 'ñ');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER replace_special_characters_trigger
+BEFORE INSERT OR UPDATE ON DATASHEEET_FALLAS_SEMANALES
+FOR EACH ROW
+EXECUTE FUNCTION replace_special_characters();
+
+
+INSERT INTO DATASHEEET_FALLAS_SEMANALES
+SELECT * FROM temp_datasheet_fallas_semanales;
+
+
+ALTER TABLE DATASHEEET_FALLAS_SEMANALES
+DROP COLUMN reasonstate_group1;
+
+
+
+
+
+CREATE TABLE DB_AVERIAS_CONSOLIDADO (
+    ID VARCHAR (255),
+    MES VARCHAR (3),
+    SEMANA INT,
+    FECHA DATE,
+    AÑO INT,
+    TURNO VARCHAR (255),
+    MAQUINA VARCHAR (255),
+    SINTOMA VARCHAR (255),
+    AREAS VARCHAR(255),
+    MINUTOS FLOAT,
+    OBSERVACIONES VARCHAR (255)
+);
+
+INSERT INTO DB_AVERIAS_CONSOLIDADO (ID, MES, SEMANA, FECHA, AÑO, TURNO, MAQUINA, MINUTOS, SINTOMA)
+SELECT 
+    CASE 
+        WHEN Machine_Name = 'TAL - Línea Ref Pet (Llenadora)' THEN 'L3'
+        WHEN Machine_Name = 'TAL - Línea RGB' THEN 'L4'
+        WHEN Machine_Name = 'TAL - Línea One Way V2' THEN 'L1'
+        ELSE Machine_Name
+    END AS ID,
+    TO_CHAR(Days_in_Calendar_DateTime, 'Mon') AS MES,
+    EXTRACT(WEEK FROM Days_in_Calendar_DateTime) AS SEMANA,
+    Days_in_Calendar_DateTime AS FECHA,
+    EXTRACT(YEAR FROM Days_in_Calendar_DateTime) AS AÑO,
+    Shift_Name AS TURNO, 
+    ReasonState_Group2 AS MAQUINA,
+    round(CAST((Scheduled_Hours::FLOAT * 60) as NUMERIC), 2) AS MINUTOS,
+    ReasonState_Name AS SINTOMA
+FROM DATASHEEET_FALLAS_SEMANALES;
+
+SELECT round(CAST(Scheduled_Hours as NUMERIC), 3) FROM DB_AVERIAS_CONSOLIDADO;
+
+SELECT * FROM DB_AVERIAS_CONSOLIDADO;
+DROP TABLE DB_AVERIAS_CONSOLIDADO;
+
+
+
+SELECT * FROM DATASHEEET_FALLAS_SEMANALES;
+DROP TABLE DATASHEEET_FALLAS_SEMANALES;
+
+

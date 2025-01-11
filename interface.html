@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1ra pagina web</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'Tab1')">Ver Tablas</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab2')">Averías Consolidadas</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab3')">Subir Datos</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab4')">Graficos</button>
+    </div>
+
+    <!-- Contenido de las pestañas -->
+    <div id="Tab1" class="tabcontent">
+        <div class="select-button-container">
+            <select id="table-select" class="table-select" onchange="loadTableData('table-container', 'Tab1')">
+                <option value="">Select a table</option>
+            </select>
+            <button id="extra-button">Descargar tabla</button>
+        </div>
+        <div id="table-container" class="table-container"></div>
+    </div>
+    
+
+    <div id="Tab2" class="tabcontent">
+        <button id="extra-button">Guardar Datos</button>
+        <div id="averias-container" class="table-container"></div>
+    </div>
+
+    <div id="Tab3" class="tabcontent">
+        <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" id="file-input" accept=".csv"/>
+            <button type="submit">Subir Archivo</button>
+        </form>
+        <div id="upload-status"></div>
+    </div>
+
+    <div id="Tab4" class="tabcontent">
+        <button id="extra-button">Descargar Graficos</button>
+        <!-- Contenido para gráficos -->
+
+    </div>
+
+    <div id="Tab5" class="tabcontent">
+        <h2>Descargar Tablas</h2>
+        <!-- Contenido para gráficos -->
+        
+    </div>
+
+    <button onclick="scrollToTop()" id="scrollToTopBtn" title="Go to top">↑</button>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
