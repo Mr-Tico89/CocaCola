@@ -11,7 +11,8 @@
         <button class="tablinks" onclick="openTab(event, 'Tab1')">Ver Tablas</button>
         <button class="tablinks" onclick="openTab(event, 'Tab2')">Averías Consolidadas</button>
         <button class="tablinks" onclick="openTab(event, 'Tab3')">Subir Datos</button>
-        <button class="tablinks" onclick="openTab(event, 'Tab4')">Graficos</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab4')">Indicador Semanal</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab5')">Graficos</button>
     </div>
 
     <!-- Contenido de las pestañas -->
@@ -27,28 +28,34 @@
     
 
     <div id="Tab2" class="tabcontent">
-        <div class="select-button-container">
+        <div class="Save-container">
             <button id="extra-button">Guardar Datos</button>
         </div>
         <div id="averias-container" class="table-container"></div>
     </div>
 
     <div id="Tab3" class="tabcontent">
-        <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" id="file-input" accept=".csv"/>
-            <button type="submit">Subir Archivo</button>
-        </form>
-        <div id="upload-status"></div>
+        <div class="upload-container">
+            <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+                <label for="file-input" class="file-label">Seleccionar archivo CSV:</label>
+                <input type="file" name="file" id="file-input" accept=".csv" class="file-input"/>
+                <button id="upload-button" type="submit">Subir Archivo</button>
+            </form>
+            <div id="upload-status"></div>
+        </div>
     </div>
 
     <div id="Tab4" class="tabcontent">
-        <button id="extra-button">Descargar Graficos</button>
-        <!-- Contenido para gráficos -->
-
+        <div class="select-button-container">
+            
+            <button id="extra-button">Generar Tabla</button>
+        </div>
+        <div id="Indicador-container" class="table-container"></div>
     </div>
 
     <div id="Tab5" class="tabcontent">
-        <h2>Descargar Tablas</h2>
+        <button id="extra-button">Descargar Graficos</button>
+        
         <!-- Contenido para gráficos -->
         
     </div>

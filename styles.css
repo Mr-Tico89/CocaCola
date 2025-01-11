@@ -41,6 +41,17 @@
     border-top: none;
 }
 
+.select-button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 /*Select para ver tablas*/
 .table-select { 
     width: 30%;
@@ -142,4 +153,41 @@
 .filter-select:focus {
     border-color: #0056b3; /* Indica enfoque */
     outline: none; /* Elimina el contorno por defecto */
+}
+
+.upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-label {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.file-input {
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+#upload-button {
+    background-color: #fe001a;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#upload-button:hover {
+    background-color: #c70000;
 }

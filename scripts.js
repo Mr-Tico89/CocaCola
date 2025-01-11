@@ -143,7 +143,7 @@ function renderEditableTable(response, containerId) {
     const headerRow = thead.insertRow();
     columns.forEach(column => {
         const th = document.createElement('th');
-        th.textContent = column;
+        th.textContent = column.charAt(0).toUpperCase() + column.slice(1);
         const filterSelect = createFilterSelect(column, data, columns, table);
         th.appendChild(filterSelect);
         headerRow.appendChild(th);
