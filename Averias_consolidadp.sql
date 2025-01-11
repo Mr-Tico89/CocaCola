@@ -64,10 +64,9 @@ BEGIN
         NEW.Days_in_Calendar_DateTime AS FECHA,
         EXTRACT(YEAR FROM NEW.Days_in_Calendar_DateTime) AS AñO,
         CASE 
-            WHEN TRIM(NEW.Shift_Name) LIKE '%No%' THEN 'Turno Noche'
+            WHEN TRIM(NEW.Shift_Name) LIKE '% No%' THEN 'Turno Noche'
             WHEN TRIM(NEW.Shift_Name) LIKE '%Tarde' THEN 'Turno Tarde'
-            WHEN TRIM(NEW.Shift_Name) LIKE '%no D%' THEN 'Turno Día'
-            ELSE NEW.Shift_Name
+            ELSE 'Turno Día'
         END AS TURNO,
         NEW.ReasonState_Group2 AS MAQUINA,
         round(CAST((NEW.Scheduled_Hours::FLOAT * 60) as NUMERIC), 2) AS MINUTOS,
