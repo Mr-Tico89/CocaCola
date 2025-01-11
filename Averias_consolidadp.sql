@@ -32,7 +32,7 @@ CREATE TABLE datos_maquinaria.DB_AVERIAS_CONSOLIDADO (
     MES VARCHAR (255),
     SEMANA INT,
     FECHA DATE,
-    AñO INT,
+    A±O INT,
     TURNO VARCHAR (255),
     MAQUINA VARCHAR (255),
     SINTOMA VARCHAR (255),
@@ -40,11 +40,13 @@ CREATE TABLE datos_maquinaria.DB_AVERIAS_CONSOLIDADO (
     MINUTOS FLOAT,
     OBSERVACIONES VARCHAR (255)
 );
---TRUNCATE TABLE DB_AVERIAS_CONSOLIDADO;
 
 --tabla temporal para datos en brutos
 CREATE TABLE temp_datasheet_fallas_semanales AS
 SELECT * FROM DATASHEEET_FALLAS_SEMANALES LIMIT 0;
+
+ALTER TABLE DB_AVERIAS_CONSOLIDADO
+RENAME COLUMN "A¤O" TO "AÑO";
 
 
 -- La función que actualizará DB_AVERIAS_CONSOLIDADO cuando se inserten datos a datasheet_averias
@@ -66,7 +68,7 @@ BEGIN
         CASE 
             WHEN TRIM(NEW.Shift_Name) LIKE '% No%' THEN 'Turno Noche'
             WHEN TRIM(NEW.Shift_Name) LIKE '%Tarde' THEN 'Turno Tarde'
-            ELSE 'Turno Día'
+            ELSE E'Turno   D\u00EDa'
         END AS TURNO,
         NEW.ReasonState_Group2 AS MAQUINA,
         round(CAST((NEW.Scheduled_Hours::FLOAT * 60) as NUMERIC), 2) AS MINUTOS,
@@ -146,3 +148,9 @@ DROP TRIGGER IF EXISTS
     -- Vaciar la tabla temp_datasheet_fallas_semanales después de la inserción
     TRUNCATE TABLE temp_datasheet_fallas_semanales;
 --
+
+
+SELECT datname, pg_encoding_to_char(encoding) AS encoding
+FROM pg_database
+WHERE datname = 'cocacola';
+

@@ -1,5 +1,4 @@
 
-// Mostrar el botón cuando el usuario se desplaza hacia abajo 20px desde la parte superior del documento
 window.onscroll = function() {scrollFunction()};
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -8,23 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadTableData('averias-container', 'Tab2', 'db_averias_consolidado');
 });
 
-
-document.getElementById('upload-form').addEventListener('submit', function(event) {
-    event.preventDefault();
-    var formData = new FormData(this);
-    fetch('/upload', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('upload-status').textContent = data.message;
-    })
-    .catch(error => {
-        document.getElementById('upload-status').textContent = 'Error al subir el archivo';
-    });
-});
-
+// Mostrar el botón cuando el usuario se desplaza hacia abajo 20px desde la parte superior del documento
 function scrollFunction() {
     const scrollToTopBtn = document.getElementById("scrollToTopBtn");
     if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
@@ -83,35 +66,38 @@ function createFilterSelect(column, data, columns, table) {
 
     select.onchange = () => {
         filterTable(table, columns);
-        // Restablecer la selección al valor por defecto
         select.value = ''
     };
     return select;
 }
 
+function filterTable(table, columns) {
+    const filters = Array.from(table.querySelectorAll('thead select')).map(select => select.value.toLowerCase());
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+    rows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td'));
+        const matches = cells.every((cell, index) => {
+            return filters[index] === '' || cell.textContent.toLowerCase() === filters[index];
+        });
+        row.style.display = matches ? '' : 'none';
+    });
+}
+
 function createEditableCell(row, column, data, rowIndex) {
     const td = document.createElement('td');
     const cellValue = row[column] || ''; // Handle missing values
-
+    if (!td) {
+        console.error('td is not defined or is not a valid element');
+        return;
+    }
     if (column === 'observaciones') {
-        if (!td) {
-            console.error('td is not defined or is not a valid element');
-            return;
-        }
-    
         const input = document.createElement('input');
         input.type = 'text';
         input.placeholder = 'Edit here';
-        input.value = cellValue ? cellValue.toUpperCase() : '';
-        input.addEventListener('input', (e) => {
-            e.target.value = e.target.value.toUpperCase();
-        });
+        input.value = input.value.toUpperCase();
         input.addEventListener('blur', () => {
-            if (data && data[rowIndex]) {
-                data[rowIndex][column] = input.value;
-            } else {
-                console.error('data or data[rowIndex] is not defined');
-            }
+            data[rowIndex][column] = input.value;
         });
         td.appendChild(input);
     } 
@@ -172,7 +158,7 @@ function renderEditableTable(response, containerId) {
             const td = containerId === 'averias-container'
                 ? createEditableCell(row, column, data, rowIndex)
                 : document.createElement('td');
-            if (td.textContent === '') td.textContent = row[column] || ''; // Static text fallback
+            if (td.textContent === '' && containerId !== 'averias-container' ) td.textContent = row[column] || ''; // Static text fallback
             tr.appendChild(td);
         });
     });
@@ -237,18 +223,7 @@ function openTab(evt, tabName) {
 
 }
 
-function filterTable(table, columns) {
-    const filters = Array.from(table.querySelectorAll('thead select')).map(select => select.value.toLowerCase());
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
 
-    rows.forEach(row => {
-        const cells = Array.from(row.querySelectorAll('td'));
-        const matches = cells.every((cell, index) => {
-            return filters[index] === '' || cell.textContent.toLowerCase() === filters[index];
-        });
-        row.style.display = matches ? '' : 'none';
-    });
-}
 
 // Abrir la primera pestaña por defecto
 document.querySelector('.tablinks').click();

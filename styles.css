@@ -59,6 +59,7 @@
 #averias-container {
     margin-top: 15px; /* Espacio entre el select y el contenedor de la tabla */
 }
+
 #extra-button {
     margin-top: 10px;
     margin-left: 5px;
@@ -118,7 +119,7 @@
     appearance: none; /* Oculta el ícono por defecto del navegador */
     cursor: pointer; /* Cambia el cursor al pasar sobre el select */
     bottom: 0;
-    text-align: center;
+    
     outline: none;
 
 }
