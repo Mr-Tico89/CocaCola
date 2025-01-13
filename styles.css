@@ -97,7 +97,7 @@
 }
 
 .editable-table th, .editable-table td {
-    padding: 8px 8px;
+    padding: 8px 2px;
     border: 1px solid #ddd;
 }
 

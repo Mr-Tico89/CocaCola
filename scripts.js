@@ -96,6 +96,9 @@ function createEditableCell(row, column, data, rowIndex) {
         input.type = 'text';
         input.placeholder = 'Edit here';
         input.value = input.value.toUpperCase();
+        input.addEventListener('input', () => {
+            input.value = input.value.toUpperCase();
+        });
         input.addEventListener('blur', () => {
             data[rowIndex][column] = input.value;
         });
