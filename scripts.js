@@ -52,37 +52,73 @@ async function loadTableData(containerId, tabName, tableName = null) {
 }
 
 function createFilterSelect(column, data, columns, table) {
-    const select = document.createElement('select');
-    select.classList.add('filter-select');
-    select.innerHTML = '<option value=""> ▼ </option>'; // Default symbol
+    // Contenedor principal
+    const container = document.createElement('div');
+    container.classList.add('filter-container');
 
+    // Botón del menú desplegable
+    const dropdownButton = document.createElement('button');
+    dropdownButton.textContent = '▼';
+    dropdownButton.classList.add('dropdown-button');
+
+    // Contenedor de opciones
+    const dropdownMenu = document.createElement('div');
+    dropdownMenu.classList.add('dropdown-menu');
+
+    // Opciones únicas
     const uniqueValues = [...new Set(data.map(row => row[column]))];
+    console.log(uniqueValues)
     uniqueValues.forEach(value => {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = value;
-        select.appendChild(option);
+        const checkboxContainer = document.createElement('label');
+        checkboxContainer.classList.add('dropdown-item');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = value;
+
+        const label = document.createElement('span');
+        label.textContent = value;
+
+        checkboxContainer.appendChild(checkbox);
+        checkboxContainer.appendChild(label);
+        dropdownMenu.appendChild(checkboxContainer);
     });
 
-    select.onchange = () => {
-        filterTable(table, columns);
-        select.value = ''
-    };
-    return select;
-}
 
-function filterTable(table, columns) {
-    const filters = Array.from(table.querySelectorAll('thead select')).map(select => select.value.toLowerCase());
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    // Mostrar u ocultar el menú desplegable
+    dropdownButton.addEventListener('click', () => {
+        dropdownMenu.classList.toggle('show');
+    });
 
-    rows.forEach(row => {
-        const cells = Array.from(row.querySelectorAll('td'));
-        const matches = cells.every((cell, index) => {
-            return filters[index] === '' || cell.textContent.toLowerCase() === filters[index];
+    // Filtrar la tabla al seleccionar opciones
+    dropdownMenu.addEventListener('change', () => {
+        const selectedOptions = Array.from(dropdownMenu.querySelectorAll('input:checked')).map(
+            checkbox => checkbox.value
+        );
+
+        // Filtrar filas de la tabla
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const cell = row.querySelector(`td:nth-child(${columns.indexOf(column) + 1})`);
+            if (
+                selectedOptions.length === 0 ||
+                selectedOptions.includes(cell.textContent)
+            ) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
         });
-        row.style.display = matches ? '' : 'none';
     });
+
+    // Agregar elementos al contenedor
+    container.appendChild(dropdownButton);
+    container.appendChild(dropdownMenu);
+
+    return container;
 }
+
+
 
 function createEditableCell(row, column, data, rowIndex) {
     const td = document.createElement('td');
@@ -147,6 +183,8 @@ function renderEditableTable(response, containerId) {
     columns.forEach(column => {
         const th = document.createElement('th');
         th.textContent = column.charAt(0).toUpperCase() + column.slice(1);
+
+        //filtro
         const filterSelect = createFilterSelect(column, data, columns, table);
         th.appendChild(filterSelect);
         headerRow.appendChild(th);
