@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTableOptions();
     document.getElementById('table-select').addEventListener('change', loadTableData);
     loadTableData('averias-container', 'Tab2', 'db_averias_consolidado');
+    loadTableData('Indicador-container', 'Tab4', 'indicador_semanal');
 });
 
 // Mostrar el botón cuando el usuario se desplaza hacia abajo 20px desde la parte superior del documento
@@ -117,7 +118,6 @@ function createFilterSelect(column, data, columns, table) {
 
     return container;
 }
-
 
 
 function createEditableCell(row, column, data, rowIndex) {

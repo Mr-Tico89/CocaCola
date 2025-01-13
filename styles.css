@@ -120,7 +120,7 @@
 .filter-container {
     position: relative;
     display: inline-block;
-    width: 200px;
+    width: 24px;
 }
 
 .dropdown-button {
@@ -130,7 +130,7 @@
     border: 1px solid #ccc;
     background-color: #fff;
     border-radius: 4px;
-    width: 100%;
+    width: 24px;
     text-align: center;
 
 }
@@ -142,9 +142,8 @@
     border: 1px solid #ccc;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     z-index: 1000;
-    width: 100%;
-    max-height: 150px;
-    overflow-y: auto;
+    width: 200px;
+    overflow-y: 100px;
     margin-top: 5px;
     color: #333;
     font-size: 14px;

@@ -26,7 +26,7 @@ CREATE TABLE datos_maquinaria.HPR_OEE (
 CREATE TABLE datos_maquinaria.INDICADOR_SEMANAL (
     TOTAL_GENERAL VARCHAR (255),
     HPR FLOAT,
-    "DISP (%)" INT,
+    "DISP_(%)" INT,
     META FLOAT,
     MTBF FLOAT,
     MTTR FLOAT,
