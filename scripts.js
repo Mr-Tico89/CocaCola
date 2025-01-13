@@ -13,7 +13,8 @@ function scrollFunction() {
     const scrollToTopBtn = document.getElementById("scrollToTopBtn");
     if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
         scrollToTopBtn.style.display = "block";
-    } else {
+    } 
+    else {
         scrollToTopBtn.style.display = "none";
     }
 }
@@ -68,7 +69,6 @@ function createFilterSelect(column, data, columns, table) {
 
     // Opciones únicas
     const uniqueValues = [...new Set(data.map(row => row[column]))];
-    console.log(uniqueValues)
     uniqueValues.forEach(value => {
         const checkboxContainer = document.createElement('label');
         checkboxContainer.classList.add('dropdown-item');
@@ -85,10 +85,17 @@ function createFilterSelect(column, data, columns, table) {
         dropdownMenu.appendChild(checkboxContainer);
     });
 
-
     // Mostrar u ocultar el menú desplegable
-    dropdownButton.addEventListener('click', () => {
+    dropdownButton.addEventListener('click', (event) => {
+        event.stopPropagation(); // Evita que el clic se propague
         dropdownMenu.classList.toggle('show');
+    });
+
+    // Cerrar el menú desplegable al hacer clic fuera de él
+    document.addEventListener('click', (event) => {
+        if (!container.contains(event.target)) {
+            dropdownMenu.classList.remove('show');
+        }
     });
 
     // Filtrar la tabla al seleccionar opciones
@@ -111,6 +118,29 @@ function createFilterSelect(column, data, columns, table) {
             }
         });
     });
+
+    // Botón para borrar filtros
+    const clearButton = document.createElement('button');
+    clearButton.textContent = 'Borrar filtros';
+    clearButton.classList.add('clear-filters-button');
+    clearButton.addEventListener('click', (event) => {
+        event.stopPropagation(); // Evita que el clic cierre el menú desplegable
+
+        // Desmarcar todas las opciones
+        const checkboxes = dropdownMenu.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Mostrar todas las filas de la tabla
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+    });
+
+    // Añadir el botón de borrar filtros al menú desplegable
+    dropdownMenu.insertBefore(clearButton, dropdownMenu.firstChild);
 
     // Agregar elementos al contenedor
     container.appendChild(dropdownButton);
