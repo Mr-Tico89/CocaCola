@@ -45,9 +45,6 @@ CREATE TABLE datos_maquinaria.DB_AVERIAS_CONSOLIDADO (
 CREATE TABLE temp_datasheet_fallas_semanales AS
 SELECT * FROM DATASHEEET_FALLAS_SEMANALES LIMIT 0;
 
-ALTER TABLE DB_AVERIAS_CONSOLIDADO
-RENAME COLUMN "A¤O" TO "AÑO";
-
 
 -- La función que actualizará DB_AVERIAS_CONSOLIDADO cuando se inserten datos a datasheet_averias
 CREATE OR REPLACE FUNCTION update_db_averias_consolidado()
@@ -77,7 +74,9 @@ BEGIN
             WHEN (CAST((NEW.Scheduled_Hours::FLOAT * 60) as NUMERIC)) < 5 THEN 'Paros Menores'
             ELSE ''
         END AS AREAS,
-        '' AS OBSERVACIONES;
+        '' AS OBSERVACIONES
+    FROM NEW
+    WHERE NEW.ReasonState_Name != 'Lubricación de pedestales - Llenadora';
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

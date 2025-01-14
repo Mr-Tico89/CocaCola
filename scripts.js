@@ -25,6 +25,24 @@ function scrollToTop() {
     document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE y Opera
 }
 
+function openTab(evt, tabName) {
+    // Ocultar todas las pestañas
+    const tabcontent = document.getElementsByClassName('tabcontent');
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = 'none';
+    }
+
+    // Eliminar la clase "active" de todos los botones
+    const tablinks = document.getElementsByClassName('tablinks');
+    for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(' active', '');
+    }
+
+    // Mostrar la pestaña actual y marcar el botón como activo
+    document.getElementById(tabName).style.display = 'block';
+    evt.currentTarget.className += ' active';
+}
+
 
 async function loadTableOptions() {
     try {
@@ -33,8 +51,9 @@ async function loadTableOptions() {
         const tableSelect = document.getElementById('table-select');
         tables.forEach(table => {
             const option = document.createElement('option');
+            
             option.value = table;
-            option.textContent = table;
+            option.textContent = table.replace(/_/g, ' ').charAt(0).toUpperCase() + table.replace(/_/g, ' ').slice(1);
             tableSelect.appendChild(option);
         });
     } catch (error) {
@@ -53,6 +72,10 @@ async function loadTableData(containerId, tabName, tableName = null) {
 
 }
 
+// Objeto global para almacenar filtros activos por columna
+const globalActiveFilters  = {};
+
+// Función para crear el selector de filtros
 function createFilterSelect(column, data, columns, table) {
     // Contenedor principal
     const container = document.createElement('div');
@@ -67,6 +90,27 @@ function createFilterSelect(column, data, columns, table) {
     const dropdownMenu = document.createElement('div');
     dropdownMenu.classList.add('dropdown-menu');
 
+    // Inicializar filtros activos para esta columna si no existen
+    globalActiveFilters[column] = globalActiveFilters[column] || new Set();
+
+    // Mostrar u ocultar el menú desplegable
+    dropdownButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        dropdownMenu.classList.toggle('show');
+    });
+
+    // Cerrar el menú desplegable al sacar el mouse
+    let closeTimeout;
+    dropdownMenu.addEventListener('mouseleave', () => {
+        closeTimeout = setTimeout(() => {
+            dropdownMenu.classList.remove('show');
+        }, 75);
+    });
+
+    dropdownMenu.addEventListener('mouseenter', () => {
+        clearTimeout(closeTimeout);
+    });
+
     // Opciones únicas
     const uniqueValues = [...new Set(data.map(row => row[column]))];
     uniqueValues.forEach(value => {
@@ -80,75 +124,70 @@ function createFilterSelect(column, data, columns, table) {
         const label = document.createElement('span');
         label.textContent = value;
 
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                globalActiveFilters[column].add(value);
+            } else {
+                globalActiveFilters[column].delete(value);
+            }
+
+            // Aplicar filtros a la tabla
+            applyFilters(columns, table);
+        });
+
         checkboxContainer.appendChild(checkbox);
         checkboxContainer.appendChild(label);
         dropdownMenu.appendChild(checkboxContainer);
     });
 
-    // Mostrar u ocultar el menú desplegable
-    dropdownButton.addEventListener('click', (event) => {
-        event.stopPropagation(); // Evita que el clic se propague
-        dropdownMenu.classList.toggle('show');
-    });
-
-    // Cerrar el menú desplegable al hacer clic fuera de él
-    document.addEventListener('click', (event) => {
-        if (!container.contains(event.target)) {
-            dropdownMenu.classList.remove('show');
-        }
-    });
-
-    // Filtrar la tabla al seleccionar opciones
-    dropdownMenu.addEventListener('change', () => {
-        const selectedOptions = Array.from(dropdownMenu.querySelectorAll('input:checked')).map(
-            checkbox => checkbox.value
-        );
-
-        // Filtrar filas de la tabla
-        const rows = table.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            const cell = row.querySelector(`td:nth-child(${columns.indexOf(column) + 1})`);
-            if (
-                selectedOptions.length === 0 ||
-                selectedOptions.includes(cell.textContent)
-            ) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-    });
-
-    // Botón para borrar filtros
+    // Botón para borrar filtros de la columna actual
     const clearButton = document.createElement('button');
     clearButton.textContent = 'Borrar filtros';
     clearButton.classList.add('clear-filters-button');
     clearButton.addEventListener('click', (event) => {
-        event.stopPropagation(); // Evita que el clic cierre el menú desplegable
+        event.stopPropagation();
 
-        // Desmarcar todas las opciones
-        const checkboxes = dropdownMenu.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
+        // Desmarcar todas las opciones de la columna específica
+        dropdownMenu.querySelectorAll('input:checked').forEach(checkbox => {
             checkbox.checked = false;
         });
 
-        // Mostrar todas las filas de la tabla
-        const rows = table.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            row.style.display = '';
-        });
+        // Limpiar los filtros activos para esta columna CAMBIARLOO
+        globalActiveFilters[column].clear();
+
+        // Aplicar filtros globalmente
+        applyFilters(columns, table);
     });
 
     // Añadir el botón de borrar filtros al menú desplegable
     dropdownMenu.insertBefore(clearButton, dropdownMenu.firstChild);
 
-    // Agregar elementos al contenedor
+    // Añadir el botón y el menú desplegable al contenedor principal
     container.appendChild(dropdownButton);
     container.appendChild(dropdownMenu);
 
-    return container;
+    return { container, activeFilters: globalActiveFilters };
 }
 
+// Función para aplicar filtros globales a la tabla
+function applyFilters(columns, table) {
+    const rows = table.querySelectorAll('tbody tr');
+
+    rows.forEach(row => {
+        let shouldDisplay = true;
+
+        columns.forEach(column => {
+            if (globalActiveFilters[column] && globalActiveFilters[column].size > 0) {
+                const cellValue = row.querySelector(`td:nth-child(${columns.indexOf(column) + 2})`).textContent;
+                if (!globalActiveFilters[column].has(cellValue)) {
+                    shouldDisplay = false;
+                }
+            }
+        });
+
+        row.style.display = shouldDisplay ? '' : 'none';
+    });
+}
 
 function createEditableCell(row, column, data, rowIndex) {
     const td = document.createElement('td');
@@ -185,6 +224,7 @@ function createEditableCell(row, column, data, rowIndex) {
         });
         select.addEventListener('change', (e) => {
             data[rowIndex][column] = e.target.value;
+            saveData(data);
         });
         td.appendChild(select);
     } 
@@ -199,100 +239,91 @@ function renderEditableTable(response, containerId) {
     const container = document.getElementById(containerId);
     const { columns, data } = response;
 
-    // Clear existing table
+    // Limpiar la tabla existente
     container.innerHTML = '';
 
-    // Create table element
+    // Crear el elemento de tabla
     const table = document.createElement('table');
     table.classList.add('editable-table');
 
-    // Create table headers with filter selects
+    // Crear encabezados de tabla con filtros
     const thead = table.createTHead();
     thead.classList.add('editable-table-header');
     const headerRow = thead.insertRow();
+
+    // Agregar encabezado de columna para checkbox si corresponde
+    if (containerId === 'averias-container') {
+        const checkboxHeader = document.createElement('th');
+        checkboxHeader.textContent = 'Quitar';
+        headerRow.appendChild(checkboxHeader);
+    }
+
+    // Contenedor de filtros activos global
+    const globalActiveFilters = {};
+
     columns.forEach(column => {
         const th = document.createElement('th');
-        th.textContent = column.charAt(0).toUpperCase() + column.slice(1);
+        th.textContent = column.replace(/_/g, ' ').charAt(0).toUpperCase() + column.replace(/_/g, ' ').slice(1);
 
-        //filtro
-        const filterSelect = createFilterSelect(column, data, columns, table);
-        th.appendChild(filterSelect);
+        // Crear filtro y asignar contenedor
+        const { container: filterContainer, activeFilters } = createFilterSelect(column, data, columns, table);
+        globalActiveFilters[column] = activeFilters[column] || new Set();
+
+        th.appendChild(filterContainer);
         headerRow.appendChild(th);
     });
 
-    // Create table body
+    // Crear cuerpo de la tabla
     const tbody = table.createTBody();
     tbody.classList.add('editable-table-body');
     data.forEach((row, rowIndex) => {
         const tr = tbody.insertRow();
+
+        // Agregar columna de checkbox si corresponde
+        if (containerId === 'averias-container') {
+            const checkboxCell = tr.insertCell();
+            checkboxCell.classList.add('checkbox-cell');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkboxCell.appendChild(checkbox);
+        }
+
         columns.forEach(column => {
             const td = containerId === 'averias-container'
                 ? createEditableCell(row, column, data, rowIndex)
                 : document.createElement('td');
-            if (td.textContent === '' && containerId !== 'averias-container' ) td.textContent = row[column] || ''; // Static text fallback
+            td.textContent = row[column] || ''; // Valor predeterminado
             tr.appendChild(td);
         });
     });
 
-    // Append thead and tbody to the table
-    table.appendChild(thead);
-    table.appendChild(tbody);
-
-    // Append table to container
+    // Agregar tabla al contenedor
     container.appendChild(table);
 }
 
 
-async function sendDataToDB() {
-    const container = document.getElementById('averias-container');
-    const inputs = container.querySelectorAll('.editable');
-    const updates = [];
 
-    inputs.forEach(input => {
-        const row = input.closest('tr');
-        const id = row.querySelector('td:first-child').textContent; // Supongamos que el ID está en la primera columna
-        const column = input.dataset.column;
-        const value = input.value;
-
-        updates.push({ id, column, value });
+// Función para guardar los datos (puede ser una llamada a una API, almacenamiento local, etc.)
+function saveData(data) {
+    // Aquí puedes implementar la lógica para guardar los datos
+    // Por ejemplo, enviar los datos a un servidor:
+    fetch('http://localhost:5000/save', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        console.log('Datos guardados:', result);
+    })
+    .catch(error => {
+        console.error('Error al guardar los datos:', error);
     });
-
-    try {
-        const response = await fetch('http://localhost:5000/update_averias', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ updates }),
-        });
-
-        if (response.ok) {
-            alert('Datos guardados exitosamente');
-            loadAveriasTable(); // Recargar la tabla después de guardar
-        } else {
-            alert('Error al guardar los datos');
-        }
-    } catch (error) {
-        console.error('Error enviando datos:', error);
-    }
 }
 
-function openTab(evt, tabName) {
-    // Ocultar todas las pestañas
-    const tabcontent = document.getElementsByClassName('tabcontent');
-    for (let i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = 'none';
-    }
-
-    // Eliminar la clase "active" de todos los botones
-    const tablinks = document.getElementsByClassName('tablinks');
-    for (let i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(' active', '');
-    }
-
-    // Mostrar la pestaña actual y marcar el botón como activo
-    document.getElementById(tabName).style.display = 'block';
-    evt.currentTarget.className += ' active';
-
-}
 
 
 
