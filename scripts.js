@@ -43,7 +43,6 @@ function openTab(evt, tabName) {
     evt.currentTarget.className += ' active';
 }
 
-
 async function loadTableOptions() {
     try {
         const response = await fetch('http://localhost:5000/tables');
@@ -169,22 +168,29 @@ function createFilterSelect(column, data, columns, table) {
     return { container, activeFilters: globalActiveFilters };
 }
 
-// Función para aplicar filtros globales a la tabla
 function applyFilters(columns, table) {
     const rows = table.querySelectorAll('tbody tr');
 
     rows.forEach(row => {
         let shouldDisplay = true;
-
         columns.forEach(column => {
             if (globalActiveFilters[column] && globalActiveFilters[column].size > 0) {
-                const cellValue = row.querySelector(`td:nth-child(${columns.indexOf(column) + 2})`).textContent;
+                const cell = row.querySelector(`td:nth-child(${columns.indexOf(column) + 2})`);
+                let cellValue = '';
+
+                // Verificar si la celda contiene un input (para valores editables)
+                const input = cell.querySelector('input');
+                if (input) {
+                    cellValue = input.value; // Usar el valor del input
+                } else {
+                    cellValue = cell.textContent; // Si no es un input, usar el texto de la celda
+                }
+
                 if (!globalActiveFilters[column].has(cellValue)) {
                     shouldDisplay = false;
                 }
             }
         });
-
         row.style.display = shouldDisplay ? '' : 'none';
     });
 }
@@ -192,26 +198,11 @@ function applyFilters(columns, table) {
 function createEditableCell(row, column, data, rowIndex) {
     const td = document.createElement('td');
     const cellValue = row[column] || ''; // Handle missing values
-    if (!td) {
-        console.error('td is not defined or is not a valid element');
-        return;
-    }
-    if (column === 'observaciones') {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = 'Edit here';
-        input.value = input.value.toUpperCase();
-        input.addEventListener('input', () => {
-            input.value = input.value.toUpperCase();
-        });
-        input.addEventListener('blur', () => {
-            data[rowIndex][column] = input.value;
-        });
-        td.appendChild(input);
-    } 
-    else if (column === 'areas' && cellValue !== 'Paros Menores') {
+    
+    if (column === 'areas' && cellValue !== 'Paros Menores') {
         const select = document.createElement('select');
         const options = ['', 'Mecánico', 'Eléctrico'];
+
         options.forEach(optionValue => {
             const option = document.createElement('option');
             option.value = optionValue;
@@ -228,8 +219,31 @@ function createEditableCell(row, column, data, rowIndex) {
         });
         td.appendChild(select);
     } 
+    // Solo permitir edición en las columnas 'sintoma' y 'observaciones'
+    else if (column === 'sintoma' || column === 'observaciones') {
+        // Crear un input editable
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Editar'
+        input.value = cellValue; // Valor inicial
+
+        // Forzar mayúsculas solo en la columna 'observaciones'
+        if (column === 'observaciones') {
+            input.addEventListener('input', () => {
+                input.value = input.value.toUpperCase();
+            });
+        }
+
+        // Guardar cambios al perder el foco
+        input.addEventListener('blur', () => {
+            data[rowIndex][column] = input.value;
+        });
+
+        td.appendChild(input);
+    }
     else {
-        td.textContent = cellValue;
+        // Si no es 'sintoma' ni 'observaciones', mostrar el valor normal
+        td.textContent = cellValue; // Valor predeterminado
     }
 
     return td;
@@ -288,19 +302,29 @@ function renderEditableTable(response, containerId) {
             checkbox.type = 'checkbox';
             checkboxCell.appendChild(checkbox);
         }
+        
+         // Crear las celdas básicas
+         const cells = columns.map(() => {
+            const td = tr.insertCell();
+            return td;
+        });
 
-        columns.forEach(column => {
-            const td = containerId === 'averias-container'
-                ? createEditableCell(row, column, data, rowIndex)
-                : document.createElement('td');
-            td.textContent = row[column] || ''; // Valor predeterminado
-            tr.appendChild(td);
+         // Actualizar celdas con contenido editable al final
+        columns.forEach((column, columnIndex) => {
+            const td = cells[columnIndex];
+            if (containerId === 'averias-container') {
+                const editableCell = createEditableCell(row, column, data, rowIndex);
+                td.replaceWith(editableCell); // Reemplaza la celda básica con la editable
+            } else {
+                td.textContent = row[column] || ''; // Valor predeterminado
+            }
         });
     });
 
     // Agregar tabla al contenedor
     container.appendChild(table);
 }
+
 
 
 
@@ -323,9 +347,6 @@ function saveData(data) {
         console.error('Error al guardar los datos:', error);
     });
 }
-
-
-
 
 // Abrir la primera pestaña por defecto
 document.querySelector('.tablinks').click();

@@ -90,95 +90,131 @@
 .editable-table {
     width: 100%;
     border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    margin: 20px 0;
     font-size: 16px;
-    text-align: center;
+    text-align: left;
+    background-color: #f9f9f9;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
     table-layout: auto; /* Ajusta automáticamente el ancho de las columnas */
 }
 
-.editable-table th, .editable-table td {
-    padding: 8px 2px;
-    border: 1px solid #ddd;
-}
-
-/* Header styling */
+/* Estilo para los encabezados */
 .editable-table-header th {
-    background-color: #a3a3a3;
-    color: white;
-    font-weight: bold;
-    font-size: 19px; /* Texto legible */
-    text-align: left;
-    padding-bottom: 8px; /* Espacio entre el texto y el filtro */
+    background-color: #d6d6d6;
+    color: rgb(63, 63, 63);
+    padding: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
-/* Body styling */
-.editable-table-body tr:nth-child(even) {
-    background-color: #f9f9f9;
+/* Estilo para el cuerpo de la tabla */
+.editable-table-body td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    vertical-align: middle;
 }
 
-.filter-container {
-    position: relative;
-    display: flex; /* Cambiar a flexbox */
-    justify-content: center; /* Centrar horizontalmente */
-    width: 24px;
-    height: 24px; /* Asegúrate de que el contenedor tenga altura */
-}
-
-.dropdown-button {
-    font-size: 15px;
-    cursor: pointer;
+/* Estilo para inputs de celdas */
+.editable-table-body input[type="text"] {
+    width: 90%;
+    padding: 5px;
     border: 1px solid #ccc;
-    background-color: #fff;
     border-radius: 4px;
-    width: 24px;
-    height: 24px; /* Asegúrate de que el botón tenga altura */
-    display: flex; /* Cambiar a flexbox */
-    justify-content: center; /* Centrar horizontalmente */
-    align-items: center; /* Centrar verticalmente */
+    font-size: 13px;
+}
+/* Estilo para selects */
+.editable-table-body select {
+    width: 95%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    font-size: 13px;
+}
+
+/* Estilo para las celdas de checkbox */
+.checkbox-cell {
     text-align: center;
 }
 
-.dropdown-menu {
+/* Estilo para el botón del filtro */
+.filter-container .dropdown-button {
+    background-color: #fe001a;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.filter-container .dropdown-button:hover {
+    background-color: #c70000;
+}
+
+/* Estilo para el menú desplegable */
+.filter-container .dropdown-menu {
     display: none;
     position: absolute;
     background-color: #fff;
     border: 1px solid #ccc;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    width: 150px;
-    overflow-y: auto;
-    max-height: 350px;
+    border-radius: 4px;
+    z-index: 10;
     margin-top: 5px;
-    color: #333;
-    font-size: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
-.dropdown-menu.show {
+.filter-container .dropdown-menu.show {
     display: block;
 }
 
-.dropdown-item {
+/* Estilo para las opciones del menú */
+.filter-container .dropdown-item {
     display: flex;
     align-items: center;
-    padding: 5px;
+    padding: 5px 10px;
     cursor: pointer;
 }
 
-.dropdown-item input {
-    margin-right: 5px;
+.filter-container .dropdown-item input[type="checkbox"] {
+    margin-right: 8px;
 }
 
-.selected-display {
-    margin-top: 5px;
-    font-size: 12px;
-    color: #333;
-    background: #f9f9f9;
-    padding: 5px;
-    border: 1px solid #ccc;
+/* Botón para borrar filtros */
+.clear-filters-button {
+    display: block;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 10px;
     border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-bottom: 10px;
 }
 
+.clear-filters-button:hover {
+    background-color: #e53935;
+}
+
+/* Hover para filas */
+.editable-table-body tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Alternar color de filas */
+.editable-table-body tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.editable-table-body tr:nth-child(odd) {
+    background-color: #fff;
+}
 
 #upload-button {
     background-color: #fe001a;
