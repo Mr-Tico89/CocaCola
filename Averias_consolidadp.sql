@@ -51,32 +51,32 @@ CREATE OR REPLACE FUNCTION update_db_averias_consolidado()
 RETURNS TRIGGER AS $$
 BEGIN
     INSERT INTO datos_maquinaria.DB_AVERIAS_CONSOLIDADO (ID, MES, SEMANA, FECHA, A±O, TURNO, MAQUINA, MINUTOS, SINTOMA, AREAS, OBSERVACIONES)
-    SELECT 
+    VALUES (
         CASE 
             WHEN TRIM(NEW.Machine_Name) LIKE '%Ref Pet (Llenadora)%' THEN 'L3'
             WHEN TRIM(NEW.Machine_Name) LIKE '%RGB%' THEN 'L4'
             WHEN TRIM(NEW.Machine_Name) LIKE '%One Way V2%' THEN 'L1'
             ELSE NEW.Machine_Name
-        END AS ID,
-        TO_CHAR(NEW.Days_in_Calendar_DateTime, 'Mon') AS MES,
-        EXTRACT(WEEK FROM NEW.Days_in_Calendar_DateTime) AS SEMANA,
-        NEW.Days_in_Calendar_DateTime AS FECHA,
-        EXTRACT(YEAR FROM NEW.Days_in_Calendar_DateTime) AS AñO,
+        END,
+        TO_CHAR(NEW.Days_in_Calendar_DateTime, 'Mon'),
+        EXTRACT(WEEK FROM NEW.Days_in_Calendar_DateTime),
+        NEW.Days_in_Calendar_DateTime,
+        EXTRACT(YEAR FROM NEW.Days_in_Calendar_DateTime),
         CASE 
             WHEN TRIM(NEW.Shift_Name) LIKE '% No%' THEN 'Turno Noche'
             WHEN TRIM(NEW.Shift_Name) LIKE '%Tarde' THEN 'Turno Tarde'
-            ELSE E'Turno   D\u00EDa'
-        END AS TURNO,
-        NEW.ReasonState_Group2 AS MAQUINA,
-        round(CAST((NEW.Scheduled_Hours::FLOAT * 60) as NUMERIC), 2) AS MINUTOS,
-        NEW.ReasonState_Name AS SINTOMA,
+            ELSE E'Turno D\u00eda'
+        END,
+        NEW.ReasonState_Group2,
+        round(CAST((NEW.Scheduled_Hours::FLOAT * 60) as NUMERIC), 2),
+        NEW.ReasonState_Name,
         CASE 
             WHEN (CAST((NEW.Scheduled_Hours::FLOAT * 60) as NUMERIC)) < 5 THEN 'Paros Menores'
             ELSE ''
-        END AS AREAS,
-        '' AS OBSERVACIONES
-    FROM NEW
-    WHERE NEW.ReasonState_Name != 'Lubricación de pedestales - Llenadora';
+        END,
+        ''
+    );
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

@@ -92,7 +92,7 @@
     border-collapse: collapse;
     font-family: Arial, sans-serif;
     margin: 20px 0;
-    font-size: 16px;
+    font-size: 14px;
     text-align: left;
     background-color: #f9f9f9;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
@@ -102,11 +102,12 @@
 /* Estilo para los encabezados */
 .editable-table-header th {
     background-color: #d6d6d6;
+    font-size: 18px;
     color: rgb(63, 63, 63);
     padding: 12px;
     position: sticky;
     top: 0;
-    z-index: 1;
+    
 }
 
 /* Estilo para el cuerpo de la tabla */
@@ -118,15 +119,14 @@
 
 /* Estilo para inputs de celdas */
 .editable-table-body input[type="text"] {
-    width: 90%;
-    padding: 5px;
+    width: 87%;
+    padding: 4px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    font-size: 13px;
 }
 /* Estilo para selects */
 .editable-table-body select {
-    width: 95%;
+    width: 90%;
     padding: 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -137,6 +137,7 @@
 /* Estilo para las celdas de checkbox */
 .checkbox-cell {
     text-align: center;
+    align-items: center;
 }
 
 /* Estilo para el botón del filtro */
@@ -144,7 +145,7 @@
     background-color: #fe001a;
     color: white;
     border: none;
-    padding: 8px 12px;
+    padding: 2px 2px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 13px;
@@ -161,12 +162,13 @@
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 4px;
-    z-index: 10;
+    z-index: 99;
     margin-top: 5px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 10px;
     max-height: 200px;
     overflow-y: auto;
+
 }
 
 .filter-container .dropdown-menu.show {
@@ -259,13 +261,30 @@
     background-color: #d32f2f;
 }
 
-.checkbox-cell {
-    display: flex;
-    justify-content: center; /* Centrar horizontalmente */
-    align-items: center; /* Centrar verticalmente */
-}
+
 
 .centered-checkbox {
     margin: 0; /* Eliminar márgenes por defecto */
 }
 
+.hidden-column {
+    display: none;
+}
+.action-cell {
+    text-align: center;
+}
+
+.delete-button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #ff6666;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    
+}
+
+.delete-button:hover {
+    background-color: #ff3333;
+}

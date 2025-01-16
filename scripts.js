@@ -1,11 +1,43 @@
 
 window.onscroll = function() {scrollFunction()};
+// Maneja el envío del formulario
+document.getElementById('upload-form').addEventListener('submit', function(event) {
+    event.preventDefault();  // Previene el comportamiento por defecto del formulario
+    var formData = new FormData(this);
 
+    // Enviar el formulario a la ruta '/upload' usando fetch
+    fetch('http://127.0.0.1:5000/uploads', {  // Enviar datos al backend
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('upload-status').innerText = data.message;
+    })
+    .catch(error => {
+        console.error('Error al subir el archivo:', error);
+    });
+});
+
+
+// Agregar eventos a los botones de pestañas
 document.addEventListener('DOMContentLoaded', async () => {
     await loadTableOptions();
-    document.getElementById('table-select').addEventListener('change', loadTableData);
-    loadTableData('averias-container', 'Tab2', 'db_averias_consolidado');
-    loadTableData('Indicador-container', 'Tab4', 'indicador_semanal');
+
+    // Agregar eventos a los botones de pestañas
+    document.querySelectorAll('.tablinks').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const tabId = event.target.getAttribute('onclick').match(/'(.*?)'/)[1]; // Extrae el ID de la pestaña
+            switch (tabId) {
+                case 'Tab2':
+                    loadTableData('averias-container', 'Tab2', 'db_averias_consolidado');
+                    break;
+                case 'Tab4':
+                    loadTableData('Indicador-container', 'Tab4', 'indicador_semanal');
+                    break;
+            }
+        });
+    });
 });
 
 // Mostrar el botón cuando el usuario se desplaza hacia abajo 20px desde la parte superior del documento
@@ -175,6 +207,7 @@ function applyFilters(columns, table) {
         let shouldDisplay = true;
         columns.forEach(column => {
             if (globalActiveFilters[column] && globalActiveFilters[column].size > 0) {
+                console.log(columns)
                 const cell = row.querySelector(`td:nth-child(${columns.indexOf(column) + 2})`);
                 let cellValue = '';
 
@@ -266,11 +299,13 @@ function renderEditableTable(response, containerId) {
     const headerRow = thead.insertRow();
 
     // Agregar encabezado de columna para checkbox si corresponde
-    if (containerId === 'averias-container') {
-        const checkboxHeader = document.createElement('th');
-        checkboxHeader.textContent = 'Quitar';
-        headerRow.appendChild(checkboxHeader);
+    const buttonHeader = document.createElement('th');
+    buttonHeader.textContent = 'Quitar';
+    if (containerId !== 'averias-container') { // ocultar la columna quitar para que filten bien los datos
+        buttonHeader.classList.add('hidden-column');
     }
+    headerRow.appendChild(buttonHeader);
+
 
     // Contenedor de filtros activos global
     const globalActiveFilters = {};
@@ -294,14 +329,26 @@ function renderEditableTable(response, containerId) {
         const tr = tbody.insertRow();
 
         // Agregar columna de checkbox si corresponde
-        if (containerId === 'averias-container') {
-            const checkboxCell = tr.insertCell();
-            checkboxCell.classList.add('checkbox-cell');
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkboxCell.appendChild(checkbox);
+        const buttonCell = tr.insertCell();
+        buttonCell.classList.add('action-cell');
+        if (containerId !== 'averias-container') { // ocultar la columna quitar para que filten bien los datos 
+            buttonCell.classList.add('hidden-column');
         }
+        const button = document.createElement('button');
+        
+        button.classList.add('delete-button');
+        button.textContent = 'X';
+
+        // Agregar funcionalidad al botón
+        button.addEventListener('click', () => {
+            // Eliminar la fila correspondiente de la tabla
+            tr.remove();
+            // También puedes eliminar la fila de los datos
+            data.splice(rowIndex, 1);
+            saveData(data); // Guardar los datos actualizados
+        });
+        buttonCell.appendChild(button);
+    
         
          // Crear las celdas básicas
          const cells = columns.map(() => {
@@ -325,15 +372,9 @@ function renderEditableTable(response, containerId) {
     container.appendChild(table);
 }
 
-
-
-
-// Función para guardar los datos (puede ser una llamada a una API, almacenamiento local, etc.)
 function saveData(data) {
-    // Aquí puedes implementar la lógica para guardar los datos
-    // Por ejemplo, enviar los datos a un servidor:
     fetch('http://localhost:5000/save', {
-        method: 'POST',
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json'
         },
