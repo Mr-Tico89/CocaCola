@@ -87,7 +87,7 @@ def get_table_data(table_name):
 
 
 # Función para cargar los datos en la base de datos después de subir el archivo
-def load_data_to_db(file_path):
+def load_data_to_db(file_path, filename):
     try:
         # Conectar a la base de datos
         conn = psycopg2.connect(
@@ -100,28 +100,52 @@ def load_data_to_db(file_path):
         )
         cursor = conn.cursor()
 
-        # Copiar datos del archivo CSV a la tabla temporal
-        with open(file_path, 'r', encoding='utf-8') as f:
-            cursor.copy_expert(
-                """
-                COPY datos_maquinaria.temp_datasheet_fallas_semanales 
-                FROM STDIN 
-                WITH CSV HEADER DELIMITER ',' ENCODING 'UTF8';
-                """,
-                f
-            )
-        conn.commit()
-        print("Datos cargados exitosamente en la tabla temporal.")
 
-        # Insertar datos en la tabla final
-        insert_query = """
-        INSERT INTO datos_maquinaria.DATASHEEET_FALLAS_SEMANALES
-        SELECT * FROM datos_maquinaria.temp_datasheet_fallas_semanales;
-        TRUNCATE TABLE datos_maquinaria.temp_datasheet_fallas_semanales;
-        """
-        cursor.execute(insert_query)
-        conn.commit()
-        print("Datos transferidos exitosamente a la tabla final.")
+        # Verificar si el nombre del archivo es DATASHEEET_FALLAS_SEMANALES
+        if 'DATASHEEETFALLASSEMANALES' in filename:
+            # Copiar datos del archivo CSV a la tabla temporal
+            with open(file_path, 'r', encoding='utf-8') as f:
+                cursor.copy_expert(
+                    """
+                    COPY datos_maquinaria.temp_datasheet_fallas_semanales 
+                    FROM STDIN 
+                    WITH CSV HEADER DELIMITER ',' ENCODING 'UTF8';
+                    """,
+                    f
+                )
+            conn.commit()
+
+            # Insertar datos en la tabla final
+            insert_query = """
+            INSERT INTO datos_maquinaria.DATASHEEET_FALLAS_SEMANALES
+            SELECT * FROM datos_maquinaria.temp_datasheet_fallas_semanales;
+            TRUNCATE TABLE datos_maquinaria.temp_datasheet_fallas_semanales;
+            """
+            cursor.execute(insert_query)
+            conn.commit()
+
+         # Verificar si el nombre del archivo es OEEYDISPONIBILIDAD
+        if 'OEEYDISPONIBILIDAD' in filename:
+             # Copiar datos del archivo CSV a la tabla temporal
+            with open(file_path, 'r', encoding='utf-8') as f:
+                cursor.copy_expert(
+                    """
+                    COPY datos_maquinaria.temp_OEEYDISPONIBILIDAD 
+                    FROM STDIN 
+                    WITH CSV HEADER DELIMITER ',' ENCODING 'UTF8';
+                    """,
+                    f
+                )
+            conn.commit()
+
+            # Insertar datos en la tabla final
+            insert_query = """
+            INSERT INTO OEEYDISPONIBILIDAD
+            SELECT * FROM temp_OEEYDISPONIBILIDAD;
+            TRUNCATE TABLE datos_maquinaria.temp_OEEYDISPONIBILIDAD;
+            """
+            cursor.execute(insert_query)
+            conn.commit()
 
     except Exception as e:
         print(f"Error: {e}")
@@ -150,7 +174,7 @@ def upload_file():
 
         try:
             convert_to_utf8_without_bom(file_path) # Llamar a la función para convertir el archivo a UTF-8 sin BOM
-            load_data_to_db(file_path)  # Llama a la función para procesar el archivo y cargarlo
+            load_data_to_db(file_path, filename)  # Llama a la función para procesar el archivo y cargarlo
             os.remove(file_path) # Elimina el archivo una vez usado
             return jsonify({'message': 'File successfully uploaded and data loaded to DB', 'filename': filename}), 200
         

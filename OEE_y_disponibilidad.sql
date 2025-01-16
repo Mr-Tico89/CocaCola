@@ -13,7 +13,7 @@ CREATE TABLE datos_maquinaria.OEEYDISPONIBILIDAD (
 CREATE TABLE datos_maquinaria.HPR_OEE (
     LINEA VARCHAR (255),
     FECHA DATE,
-    AñO INT,
+    A±O INT,
     MIN FLOAT,
     "OEE_(%)" FLOAT,
     MES VARCHAR (255),
@@ -21,79 +21,45 @@ CREATE TABLE datos_maquinaria.HPR_OEE (
 );
 --TRUNCATE TABLE HPR_OEE;
 
+CREATE TABLE temp_OEEYDISPONIBILIDAD AS
+SELECT * FROM OEEYDISPONIBILIDAD LIMIT 0;
 
---crear tabla 
-CREATE TABLE datos_maquinaria.INDICADOR_SEMANAL (
-    TOTAL_GENERAL VARCHAR (255),
-    HPR FLOAT,
-    "DISP_(%)" INT,
-    META FLOAT,
-    MTBF FLOAT,
-    MTTR FLOAT,
-    AVERIAS INT,
-    MINUTOS FLOAT,
-    "OEE_(%)" INT
-);
---TRUNCATE TABLE INDICADOR_SEMANAL; 
 
 --cargar datos OEE
-\copy OEEYDISPONIBILIDAD FROM 'C:\Users\matias\Desktop\cocacola\OEEYDISPONIBILIDAD (10).csv' WITH DELIMITER ',' CSV HEADER ENCODING 'UTF8';
+\copy temp_OEEYDISPONIBILIDAD FROM 'C:\Users\matias\Desktop\cocacola\OEEYDISPONIBILIDAD (10).csv' WITH DELIMITER ',' CSV HEADER ENCODING 'UTF8';
+
+INSERT INTO OEEYDISPONIBILIDAD
+SELECT * FROM temp_OEEYDISPONIBILIDAD;
+
 
 --trabajar datos OEE
-INSERT INTO datos_maquinaria.HPR_OEE (LINEA, FECHA, AñO, MIN, "OEE_(%)", MES, SEMANA)
-SELECT 
-    CASE 
-        WHEN TRIM(Machine_Name) LIKE '%Ref Pet (Llenadora)%' THEN 'L3'
-        WHEN TRIM(Machine_Name) LIKE '%RGB%' THEN 'L4'
-        WHEN TRIM(Machine_Name) LIKE '%One Way V2%' THEN 'L1'
-        ELSE Machine_Name
-    END AS LINEA,
-    Days_in_Calendar_DateTime AS FECHA,
-    EXTRACT(YEAR FROM Days_in_Calendar_DateTime) AS AñO,
-    round(CAST((Horas_planificadas::FLOAT * 60) as NUMERIC), 2) AS MIN,
-    OEE * 100 AS "OEE_(%)",
-    TO_CHAR(Days_in_Calendar_DateTime, 'Mon') AS MES,
-    EXTRACT(WEEK FROM Days_in_Calendar_DateTime) AS SEMANA
-FROM datos_maquinaria.OEEYDISPONIBILIDAD;
+CREATE OR REPLACE FUNCTION insert_into_hpr_oee()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO datos_maquinaria.HPR_OEE (LINEA, FECHA, A±O, MIN, "OEE_(%)", MES, SEMANA)
+    SELECT 
+        CASE 
+            WHEN TRIM(NEW.Machine_Name) LIKE '%Ref Pet (Llenadora)%' THEN 'L3'
+            WHEN TRIM(NEW.Machine_Name) LIKE '%RGB%' THEN 'L4'
+            WHEN TRIM(NEW.Machine_Name) LIKE '%One Way V2%' THEN 'L1'
+            ELSE NEW.Machine_Name
+        END AS LINEA,
+        NEW.Days_in_Calendar_DateTime AS FECHA,
+        EXTRACT(YEAR FROM NEW.Days_in_Calendar_DateTime) AS A±O,
+        round(CAST((NEW.Horas_planificadas::FLOAT * 60) as NUMERIC), 2) AS MIN,
+        NEW.OEE * 100 AS "OEE_(%)",
+        TO_CHAR(NEW.Days_in_Calendar_DateTime, 'Mon') AS MES,
+        EXTRACT(WEEK FROM NEW.Days_in_Calendar_DateTime) AS SEMANA
+    FROM datos_maquinaria.OEEYDISPONIBILIDAD
+    WHERE NEW.Machine_Name = Machine_Name
+      AND NEW.Days_in_Calendar_DateTime = Days_in_Calendar_DateTime;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 
-
-
-
-INSERT INTO datos_maquinaria.INDICADOR_SEMANAL (TOTAL_GENERAL, META)
-SELECT DISTINCT LINEA AS TOTAL_GENERAL, 0.95 AS META
-FROM datos_maquinaria.HPR_OEE
-UNION
-SELECT 'L2' AS TOTAL_GENERAL, 0.95 AS META
-UNION
-SELECT 'PLANTA' AS TOTAL_GENERAL, NULL AS META
-ORDER BY TOTAL_GENERAL;
-
-
- HPR, "DISP (%)", META, MTBF, MTTR, AVERIAS, MINUTOS, "OEE_(%)"
---    AS HPR,
-    AS "DISP (%)",
-    AS META,
-    AS MTBF,
-    AS MTTR,
-    AS AVERIAS,
-    AS MINUTOS,
-    AS "OEE_(%)"
-
-SELECT 
-    h.LINEA,
-    h."OEE_(%)",
-    d.AREAS
-
-FROM 
-    datos_maquinaria.HPR_OEE h
-JOIN 
-    datos_maquinaria.DB_AVERIAS_CONSOLIDADO d
-ON 
-    h.FECHA = d.FECHA;
-
-
-Select * from HPR_OEE
-    where año = '2024',
-    and mes = 'dec',
-    and semana = '52';
+CREATE TRIGGER after_insert_oee_y_disponibilidad
+AFTER INSERT ON datos_maquinaria.OEEYDISPONIBILIDAD
+FOR EACH ROW
+EXECUTE FUNCTION insert_into_hpr_oee();
