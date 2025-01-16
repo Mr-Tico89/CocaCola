@@ -1,8 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import psycopg2
-import codecs
-import subprocess
 import os
 
 app = Flask(__name__)
@@ -49,8 +47,6 @@ def convert_to_utf8_without_bom(input_file):
     except Exception as e:
         print(f"Error al procesar el archivo: {e}")
 
-
-
 # Función para verificar si el archivo tiene una extensión permitida
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -90,56 +86,50 @@ def get_table_data(table_name):
     return jsonify(response)
 
 
-
-
-
 # Función para cargar los datos en la base de datos después de subir el archivo
-def load_data_to_db(filename):
-    # Construye la ruta del archivo usando las barras correctas
-    file_path = os.path.normpath(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    # Establecer la contraseña en la variable de entorno PGPASSWORD
-    os.environ['PGPASSWORD'] = '1234'
-
-    # Comando \copy para cargar datos en la tabla temporal
-    command = f'psql -U postgres -d cocacola -c "\\copy datos_maquinaria.temp_datasheet_fallas_semanales FROM \'{file_path}\' WITH DELIMITER \',\' CSV HEADER ENCODING \'UTF8\'"'
-
+def load_data_to_db(file_path):
     try:
-        copy = "\copy temp_datasheet_fallas_semanales FROM '{file_path}' WITH DELIMITER ',' CSV HEADER ENCODING 'UTF8';"       
-        # Insertar los datos en la tabla final
-        insert_query = """
-        INSERT INTO datos_maquinaria.DATASHEEET_FALLAS_SEMANALES
-        SELECT * FROM datos_maquinaria.temp_datasheet_fallas_semanales;
-        """
-        # Conectar a la base de datos para ejecutar el INSERT
+        # Conectar a la base de datos
         conn = psycopg2.connect(
             dbname="cocacola",
             user="postgres",
             password="1234",
             host="localhost",
-            port="5432"
+            port="5432",
+            options="-c client_encoding=WIN1252"
         )
         cursor = conn.cursor()
-        cursor.execute("SHOW client_encoding;")
-        encoding = cursor.fetchone()
-        print(encoding)
+
+        # Copiar datos del archivo CSV a la tabla temporal
+        with open(file_path, 'r', encoding='utf-8') as f:
+            cursor.copy_expert(
+                """
+                COPY datos_maquinaria.temp_datasheet_fallas_semanales 
+                FROM STDIN 
+                WITH CSV HEADER DELIMITER ',' ENCODING 'UTF8';
+                """,
+                f
+            )
+        conn.commit()
+        print("Datos cargados exitosamente en la tabla temporal.")
+
+        # Insertar datos en la tabla final
+        insert_query = """
+        INSERT INTO datos_maquinaria.DATASHEEET_FALLAS_SEMANALES
+        SELECT * FROM datos_maquinaria.temp_datasheet_fallas_semanales;
+        TRUNCATE TABLE datos_maquinaria.temp_datasheet_fallas_semanales;
+        """
         cursor.execute(insert_query)
         conn.commit()
         print("Datos transferidos exitosamente a la tabla final.")
-        
-        # Vaciar la tabla temporal
-        cursor.execute("TRUNCATE TABLE temp_datasheet_fallas_semanales;")
-        conn.commit()
 
-    except subprocess.CalledProcessError as e:
-        print(f"Error al cargar datos con \copy: {e}")
     except Exception as e:
-        print(f"Error al insertar o procesar los datos: {e}")
+        print(f"Error: {e}")
     finally:
-        # Cerrar conexión de base de datos
+        # Cerrar la conexión
         if conn:
             cursor.close()
             conn.close()
-
 
 @app.route('/uploads', methods=['POST'])
 def upload_file():
@@ -147,6 +137,7 @@ def upload_file():
         return jsonify({'message': 'No file part'}), 400
     
     file = request.files['file']
+
     if file.filename == '':
         return jsonify({'message': 'No selected file'}), 400
     
@@ -158,11 +149,11 @@ def upload_file():
         file.save(file_path)
 
         try:
-            # Llamar a la función para convertir el archivo a UTF-8 sin BOM
-            convert_to_utf8_without_bom(file_path)
-            
-            load_data_to_db(filename)  # Llama a la función para procesar el archivo y cargarlo
+            convert_to_utf8_without_bom(file_path) # Llamar a la función para convertir el archivo a UTF-8 sin BOM
+            load_data_to_db(file_path)  # Llama a la función para procesar el archivo y cargarlo
+            os.remove(file_path) # Elimina el archivo una vez usado
             return jsonify({'message': 'File successfully uploaded and data loaded to DB', 'filename': filename}), 200
+        
         except Exception as e:
             return jsonify({'message': f'Error while loading data to DB: {str(e)}'}), 500
     else:
@@ -213,7 +204,6 @@ def save():
 
     # Si todo fue bien
     return jsonify({'message': 'Datos guardados correctamente'}), 200
-
 
 if __name__ == "__main__":
     app.run(debug=False)

@@ -29,10 +29,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         button.addEventListener('click', (event) => {
             const tabId = event.target.getAttribute('onclick').match(/'(.*?)'/)[1]; // Extrae el ID de la pestaña
             switch (tabId) {
-                case 'Tab2':
+                case 'Tab2': //carga la tabla db_averias_consolidado al entrar en la pestaña 2
                     loadTableData('averias-container', 'Tab2', 'db_averias_consolidado');
                     break;
-                case 'Tab4':
+                case 'Tab4': //carga la tabla db_averias_consolidado al entrar en la pestaña 2
                     loadTableData('Indicador-container', 'Tab4', 'indicador_semanal');
                     break;
             }
@@ -57,6 +57,7 @@ function scrollToTop() {
     document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE y Opera
 }
 
+//funcion para las pestañas de la pagina
 function openTab(evt, tabName) {
     // Ocultar todas las pestañas
     const tabcontent = document.getElementsByClassName('tabcontent');
@@ -74,7 +75,7 @@ function openTab(evt, tabName) {
     document.getElementById(tabName).style.display = 'block';
     evt.currentTarget.className += ' active';
 }
-
+//funcion para cargar los nombres de las tablas en las opciones tab1
 async function loadTableOptions() {
     try {
         const response = await fetch('http://localhost:5000/tables');
@@ -92,6 +93,7 @@ async function loadTableOptions() {
     }
 }
 
+//funcion para cargar los datos del backtend al front
 async function loadTableData(containerId, tabName, tableName = null) {
     const table = tableName || document.getElementById('table-select').value;
     if (!table) return;
@@ -200,6 +202,7 @@ function createFilterSelect(column, data, columns, table) {
     return { container, activeFilters: globalActiveFilters };
 }
 
+//funcion de los filtros de las tablas
 function applyFilters(columns, table) {
     const rows = table.querySelectorAll('tbody tr');
 
@@ -228,6 +231,7 @@ function applyFilters(columns, table) {
     });
 }
 
+//funcion de las celdas editables
 function createEditableCell(row, column, data, rowIndex) {
     const td = document.createElement('td');
     const cellValue = row[column] || ''; // Handle missing values
@@ -282,6 +286,7 @@ function createEditableCell(row, column, data, rowIndex) {
     return td;
 }
 
+//funcion para renderizar la tabla
 function renderEditableTable(response, containerId) {
     const container = document.getElementById(containerId);
     const { columns, data } = response;
@@ -371,6 +376,7 @@ function renderEditableTable(response, containerId) {
     // Agregar tabla al contenedor
     container.appendChild(table);
 }
+
 
 function saveData(data) {
     fetch('http://localhost:5000/save', {
