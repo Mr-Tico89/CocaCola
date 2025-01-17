@@ -1,7 +1,9 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2
+import json
 import os
+
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Aumenta el límite a 16 MB
@@ -31,6 +33,7 @@ def query_db(query, args=(), one=False):
     conn.close()
     return (rv, column_names) if not one else (rv[0], column_names)
 
+
 # Función para cambiar la codificacion del archivo a utf8
 def convert_to_utf8_without_bom(input_file):
     try:
@@ -42,10 +45,9 @@ def convert_to_utf8_without_bom(input_file):
         with open(input_file, 'w', encoding='utf-8') as f:
             f.write(content)
 
-        print(f"Archivo sobrescrito a UTF-8 sin BOM: {input_file}")
-    
     except Exception as e:
         print(f"Error al procesar el archivo: {e}")
+
 
 # Función para verificar si el archivo tiene una extensión permitida
 def allowed_file(filename):
@@ -71,8 +73,10 @@ def get_table_data(table_name):
     """
     columns, _ = query_db(query_columns) 
     column_names = [col[0] for col in columns]  # Extraer nombres de columnas
-
-    query = f"SELECT row_to_json(t) FROM {table_name} t;"
+    if (table_name == 'db_averias_consolidado'):
+        query = f"SELECT row_to_json(t) FROM {table_name} t ORDER BY t.fecha;"
+    else:
+        query = f"SELECT row_to_json(t) FROM {table_name} t;"
     # Ejecutar consulta para obtener los datos
     rows, _ = query_db(query)
     flattened_rows = [item for sublist in rows for item in sublist]
@@ -82,6 +86,7 @@ def get_table_data(table_name):
         "columns": column_names,
         "data": flattened_rows
     }
+
     # Enviar el JSON al frontend
     return jsonify(response)
 
@@ -155,6 +160,7 @@ def load_data_to_db(file_path, filename):
             cursor.close()
             conn.close()
 
+
 @app.route('/uploads', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -183,15 +189,23 @@ def upload_file():
     else:
         return jsonify({'message': 'Invalid file type, only .csv files are allowed'}), 400
 
+
 @app.route('/save', methods=['PUT'])
 def save():
     # Intentamos obtener el JSON enviado por el cliente
     data = request.get_json()
-    if data is None or not isinstance(data, list):
+    columns = data.get('columns', [])
+    data = data.get('data', [])
+    ordered_data = []
+    for record in data:
+        ordered_record = {col: record.get(col.lower()) for col in columns}
+        ordered_data.append(ordered_record)
+
+    if ordered_data is None or not isinstance(ordered_data, list):
         return jsonify({'error': 'El cuerpo debe ser un array JSON válido'}), 400
 
     # Validación adicional del JSON
-    if not all(isinstance(item, dict) for item in data):
+    if not all(isinstance(item, dict) for item in ordered_data):
         return jsonify({'error': 'Cada elemento del array debe ser un objeto JSON'}), 400
 
     # Intentamos insertar los datos en la base de datos
@@ -201,20 +215,38 @@ def save():
             user="postgres",
             password="1234",
             host="localhost",
-            port="5432"
+            port="5432",
+            options="-c client_encoding=WIN1252"
         )
         cur = conn.cursor()
 
-        # Insertamos cada elemento del JSON
-        for item in data:
-            columns = item.keys()
-            values = [item[column] for column in columns]
-            set_clause = ', '.join([f"{column} = %s" for column in columns])
-            update_statement = f'UPDATE datos_maquinaria.DB_AVERIAS_CONSOLIDADO SET {set_clause}'
-            cur.execute(update_statement, values + [item['id']])
+        # 1. Realizar TRUNCATE (vaciar la tabla)
+        cur.execute("TRUNCATE TABLE DB_AVERIAS_CONSOLIDADO RESTART IDENTITY")
 
-        # Confirmamos los cambios
+        # 2. Insertar nuevos datos
+        for item in data:
+            query = """
+                INSERT INTO DB_AVERIAS_CONSOLIDADO (id, mes, semana, fecha, año, turno, maquina, sintoma, areas, minutos, observaciones)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            values = (item['id'], item['mes'], item['semana'], item['fecha'], item['año'], item['turno'], item['maquina'], item['sintoma'], item['areas'], item['minutos'], item['observaciones'])
+            cur.execute(query, values)
+
+        # 3. Asegúrate de hacer commit para guardar los cambios
         conn.commit()
+
+        # 4. Ordenar los datos por ID y agrupar si es necesario (ejemplo usando GROUP BY)
+        query_select = """
+            SELECT id, mes, semana, fecha, año, turno, maquina, sintoma, areas, minutos, observaciones
+            FROM DB_AVERIAS_CONSOLIDADO
+            ORDER BY id ASC
+            -- Si necesitas usar GROUP BY, puedes agregarlo aquí
+        """
+        cur.execute(query_select)
+
+        # Cerrar la conexión
+        cur.close()
+        conn.close()
 
     except Exception as e:
         # Si ocurre un error, revertimos los cambios
@@ -228,6 +260,7 @@ def save():
 
     # Si todo fue bien
     return jsonify({'message': 'Datos guardados correctamente'}), 200
+
 
 if __name__ == "__main__":
     app.run(debug=False)

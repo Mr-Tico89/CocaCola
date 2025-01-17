@@ -10,10 +10,13 @@
     <div class="tab">
         <button class="tablinks" onclick="openTab(event, 'Tab1')">Ver Tablas</button>
         <button class="tablinks" onclick="openTab(event, 'Tab2')">Averías Consolidadas</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab6')">HPR OEE</button>
         <button class="tablinks" onclick="openTab(event, 'Tab3')">Subir Datos</button>
         <button class="tablinks" onclick="openTab(event, 'Tab4')">Indicador Semanal</button>
         <button class="tablinks" onclick="openTab(event, 'Tab5')">Graficos</button>
+        
     </div>
+
 
     <!-- Contenido de las pestañas -->
     <div id="Tab1" class="tabcontent">
@@ -29,10 +32,10 @@
 
     <div id="Tab2" class="tabcontent">
         <div class="Save-container">
-            <button id="extra-button">Guardar Datos</button>
         </div>
-        <div id="averias-container" class="table-container"></div>
+        <div id="editable-container" class="table-container"></div>
     </div>
+
 
     <div id="Tab3" class="tabcontent">
         <div class="select-button-container">
@@ -45,6 +48,7 @@
         </div>
     </div>
 
+
     <div id="Tab4" class="tabcontent">
         <div class="select-button-container">
             <button id="extra-button">Generar Datos</button>
@@ -52,9 +56,18 @@
         <div id="Indicador-container" class="table-container"></div>
     </div>
 
+
     <div id="Tab5" class="tabcontent">
         <button id="extra-button">Descargar Graficos</button>
     </div>
+
+
+    <div id="Tab6" class="tabcontent">
+        <div class="Save-container">
+        </div>
+        <div id="OEE-container" class="table-container"></div>
+    </div>
+
 
     <button onclick="scrollToTop()" id="scrollToTopBtn" title="Go to top">↑</button>
     <script src="scripts.js"></script>

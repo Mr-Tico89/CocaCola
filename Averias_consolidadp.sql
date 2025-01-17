@@ -50,36 +50,51 @@ SELECT * FROM DATASHEEET_FALLAS_SEMANALES LIMIT 0;
 CREATE OR REPLACE FUNCTION update_db_averias_consolidado()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO datos_maquinaria.DB_AVERIAS_CONSOLIDADO (ID, MES, SEMANA, FECHA, A±O, TURNO, MAQUINA, MINUTOS, SINTOMA, AREAS, OBSERVACIONES)
+    -- Insertar un nuevo registro en DB_AVERIAS_CONSOLIDADO
+    INSERT INTO datos_maquinaria.DB_AVERIAS_CONSOLIDADO (
+        ID, MES, SEMANA, FECHA, AÑO, TURNO, MAQUINA, MINUTOS, SINTOMA, AREAS, OBSERVACIONES
+    )
     VALUES (
+        -- Determinar el valor de ID basado en Machine_Name
         CASE 
             WHEN TRIM(NEW.Machine_Name) LIKE '%Ref Pet (Llenadora)%' THEN 'L3'
             WHEN TRIM(NEW.Machine_Name) LIKE '%RGB%' THEN 'L4'
             WHEN TRIM(NEW.Machine_Name) LIKE '%One Way V2%' THEN 'L1'
             ELSE NEW.Machine_Name
         END,
+        -- Obtener el mes en formato abreviado
         TO_CHAR(NEW.Days_in_Calendar_DateTime, 'Mon'),
+        -- Calcular la semana del año
         EXTRACT(WEEK FROM NEW.Days_in_Calendar_DateTime),
+        -- Usar la fecha original
         NEW.Days_in_Calendar_DateTime,
+        -- Extraer el año de la fecha
         EXTRACT(YEAR FROM NEW.Days_in_Calendar_DateTime),
+        -- Determinar el turno basado en Shift_Name
         CASE 
             WHEN TRIM(NEW.Shift_Name) LIKE '% No%' THEN 'Turno Noche'
             WHEN TRIM(NEW.Shift_Name) LIKE '%Tarde' THEN 'Turno Tarde'
-            ELSE E'Turno D\u00eda'
+            ELSE E'Turno Día'
         END,
+        -- Nombre de la máquina
         NEW.ReasonState_Group2,
-        round(CAST((NEW.Scheduled_Hours::FLOAT * 60) as NUMERIC), 2),
+        -- Calcular los minutos redondeados
+        ROUND(CAST((NEW.Scheduled_Hours::FLOAT * 60) AS NUMERIC), 2),
+        -- Nombre del estado de la razón
         NEW.ReasonState_Name,
+        -- Determinar áreas basadas en minutos
         CASE 
-            WHEN (CAST((NEW.Scheduled_Hours::FLOAT * 60) as NUMERIC)) < 5 THEN 'Paros Menores'
+            WHEN ROUND(CAST((NEW.Scheduled_Hours::FLOAT * 60) AS NUMERIC), 2) < 5 THEN 'Paros Menores'
             ELSE ''
         END,
+        -- Observaciones vacías
         ''
     );
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 -- Crear el trigger que llama a la función update_db_averias_consolidado

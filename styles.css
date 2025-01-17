@@ -15,11 +15,14 @@
 }
 .tab {
     overflow: hidden;
+    display: flex;
+    justify-content: center; /* Centra horizontalmente */
     border: 1px solid #ccc;
     background-color: #f1f1f1;
 }
 .tab button {
     background-color: inherit;
+    
     float: left;
     border: none;
     outline: none;
@@ -287,4 +290,21 @@
 
 .delete-button:hover {
     background-color: #ff3333;
+}
+
+
+.pagination-container {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.pagination-container button {
+    padding: 5px 10px;
+    margin: 0 10px;
+    cursor: pointer;
+}
+
+.pagination-container button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
 }
