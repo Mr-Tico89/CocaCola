@@ -46,24 +46,29 @@
 
 .select-button-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     padding: 20px;
     border: 1px solid #ccc;
     border-radius: 10px;
     background-color: #f9f9f9;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    gap: 10px; /* Espacio entre los elementos */
+}
+
+.select-button-container label {
+    margin-right: 10px; /* Espacio entre el label y el primer select */
 }
 
 /*Select para ver tablas*/
 .table-select { 
     width: 30%;
-    padding: 8px;
+    padding: 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
     background-color: #e9e9e9;
-    font-size: 16px;
-    margin-bottom: 10px;
+    font-size: 14px;
+    margin-right: 10px; /* Espacio entre los selects */
 }
 
 #table-container {
@@ -75,8 +80,7 @@
 }
 
 #extra-button {
-    margin-top: 10px;
-    margin-left: 5px;
+    margin-left: 10px;
     padding: 10px 20px;
     background-color: #fe001a; /* Rojo cocacola por defecto */
     color: white;
@@ -122,7 +126,7 @@
 
 /* Estilo para inputs de celdas */
 .editable-table-body input[type="text"] {
-    width: 87%;
+    width: auto;
     padding: 4px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -265,7 +269,6 @@
 }
 
 
-
 .centered-checkbox {
     margin: 0; /* Eliminar márgenes por defecto */
 }
@@ -308,3 +311,51 @@
     background-color: #ccc;
     cursor: not-allowed;
 }
+
+.styled-label {
+    font-size: 16px; /* Tamaño de fuente */
+    font-weight: bold; /* Negrita */
+    color: #333; /* Color del texto */
+    margin-right: 10px; /* Espacio a la derecha */
+    padding: 5px 10px; /* Espaciado interno */
+    background-color: #f0f0f0; /* Color de fondo */
+    border-radius: 5px; /* Bordes redondeados */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra */
+    display: inline-block; /* Asegura que el label se comporte como un bloque en línea */
+}
+
+
+
+/* Contenedor del select */
+.filter-select {
+    width: 100%; /* Ancho completo */
+    height: 85px; /* Alto del select para ver varias opciones */
+    padding: 6px; /* Espaciado interno */
+    border: 2px solid #ccc; /* Borde del select */
+    border-radius: 5px; /* Bordes redondeados */
+    background-color: #f9f9f9; /* Color de fondo */
+    font-size: 14px; /* Tamaño de la fuente */
+    color: #333; /* Color del texto */
+    font-family: Arial, sans-serif; /* Tipo de letra */
+    box-sizing: border-box; /* Asegura que el padding no afecte el tamaño */
+    
+}
+
+/* Cambiar el fondo de la opción seleccionada */
+.filter-select option:checked {
+    background-color: #ccc; /* Fondo personalizado */
+    color: rgb(46, 46, 46); /* Texto */
+}
+
+/* Estilo cuando el select está enfocado */
+.filter-select:focus {
+    outline: none; /* Elimina el borde de enfoque predeterminado */
+    box-shadow: 0 0 8px #ccc; /* Sombra azul */
+}
+
+/* Estilo para las opciones cuando se pasan por encima (hover) */
+.filter-select option:hover {
+    background-color: #ccc; /* Fondo gris claro */
+    color: #333; /* Texto gris oscuro */
+}
+
