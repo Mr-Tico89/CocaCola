@@ -13,6 +13,7 @@
     padding: 15px;
     border-radius: 4px;
 }
+
 .tab {
     overflow: hidden;
     display: flex;
@@ -20,9 +21,9 @@
     border: 1px solid #ccc;
     background-color: #f1f1f1;
 }
+
 .tab button {
     background-color: inherit;
-    
     float: left;
     border: none;
     outline: none;
@@ -30,9 +31,11 @@
     padding: 14px 16px;
     transition: 0.3s;
 }
+
 .tab button:hover {
     background-color: #ddd;
 }
+
 .tab button.active {
     background-color: #ccc;
 }
@@ -71,15 +74,8 @@
     margin-right: 10px; /* Espacio entre los selects */
 }
 
-#table-container {
-    margin-top: 15px; /* Espacio entre el select y el contenedor de la tabla */
-}
 
-#averias-container {
-    margin-top: 15px; /* Espacio entre el select y el contenedor de la tabla */
-}
-
-#extra-button {
+.extra-button {
     margin-left: 10px;
     padding: 10px 20px;
     background-color: #fe001a; /* Rojo cocacola por defecto */
@@ -89,7 +85,7 @@
     cursor: pointer;
 }
 
-#extra-button:hover {
+.extra-button:hover {
     background-color: #c70000;
 }
 
@@ -98,7 +94,7 @@
     width:  100%;
     border-collapse: collapse;
     font-family: Arial, sans-serif;
-    margin: 20px 0;
+    margin: 15px 0;
     font-size: 14px;
     text-align: center;
     background-color: #f9f9f9;
@@ -114,7 +110,6 @@
     padding: 8px;
     position: sticky;
     top: 0;
-    
 }
 
 /* Estilo para el cuerpo de la tabla */
@@ -126,7 +121,7 @@
 
 /* Estilo para inputs de celdas */
 .editable-table-body input[type="text"] {
-    width: 200px;
+    width: auto;
     padding: 6px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -148,6 +143,7 @@
     padding: 5px;
     text-align: center;
     align-items: center;
+    
 }
 
 /* Estilo para el botón del filtro */
@@ -158,7 +154,7 @@
     padding: 2px 2px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .filter-container .dropdown-button:hover {
@@ -172,11 +168,11 @@
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 4px;
-    z-index: 99;
+    z-index: 1;
     margin-top: 5px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 10px;
-    max-height: 200px;
+    max-height: 400px;
     overflow-y: auto;
 
 }
@@ -194,7 +190,7 @@
 }
 
 .filter-container .dropdown-item input[type="checkbox"] {
-    margin-right: 4px;
+    margin-right: 6px;
 }
 
 /* Botón para borrar filtros */
@@ -214,10 +210,6 @@
     background-color: #e53935;
 }
 
-/* Hover para filas */
-.editable-table-body tr:hover {
-    background-color: #f1f1f1;
-}
 
 /* Alternar color de filas */
 .editable-table-body tr:nth-child(even) {
@@ -226,19 +218,6 @@
 
 .editable-table-body tr:nth-child(odd) {
     background-color: #fff;
-}
-
-#upload-button {
-    background-color: #fe001a;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-#upload-button:hover {
-    background-color: #c70000;
 }
 
 .clear-filters-button {
@@ -272,10 +251,6 @@
 }
 
 
-.centered-checkbox {
-    margin: 0; /* Eliminar márgenes por defecto */
-}
-
 .hidden-column {
     display: none;
 }
@@ -297,21 +272,6 @@
 }
 
 
-
-.styled-label {
-    font-size: 16px; /* Tamaño de fuente */
-    font-weight: bold; /* Negrita */
-    color: #333; /* Color del texto */
-    margin-right: 10px; /* Espacio a la derecha */
-    padding: 5px 10px; /* Espaciado interno */
-    background-color: #f0f0f0; /* Color de fondo */
-    border-radius: 5px; /* Bordes redondeados */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra */
-    display: inline-block; /* Asegura que el label se comporte como un bloque en línea */
-}
-
-
-
 /* Contenedor del select */
 .filter-select {
     width: 100%; /* Ancho completo */
@@ -327,11 +287,13 @@
     
 }
 
+
 /* Cambiar el fondo de la opción seleccionada */
 .filter-select option:checked {
     background-color: #ccc; /* Fondo personalizado */
     color: rgb(46, 46, 46); /* Texto */
 }
+
 
 /* Estilo cuando el select está enfocado */
 .filter-select:focus {
@@ -339,9 +301,22 @@
     box-shadow: 0 0 8px #ccc; /* Sombra azul */
 }
 
+
 /* Estilo para las opciones cuando se pasan por encima (hover) */
 .filter-select option:hover {
     background-color: #ccc; /* Fondo gris claro */
     color: #333; /* Texto gris oscuro */
+}
+
+.styled-label {
+    font-size: 16px; /* Tamaño de fuente */
+    font-weight: bold; /* Negrita */
+    color: #333; /* Color del texto */
+    margin-right: 10px; /* Espacio a la derecha */
+    padding: 5px 10px; /* Espaciado interno */
+    background-color: #f0f0f0; /* Color de fondo */
+    border-radius: 5px; /* Bordes redondeados */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra */
+    display: inline-block; /* Asegura que el label se comporte como un bloque en línea */
 }
 

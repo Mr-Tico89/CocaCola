@@ -19,15 +19,20 @@ document.addEventListener('DOMContentLoaded', function () {
             // Definir las acciones para cada pestaña
             switch (tabId) {
                 case 'Tab2':
-                    
                     loadTableData('editable-container-tab2', 'Tab2', 'db_averias_consolidado', true)
                     break;
+
+                case 'Tab3':
+                    resetTab3();
+                    break;
+
                 case 'Tab4':
                     loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
                     loadTableData('Indicador-container', 'Tab4', 'db_averias_consolidado', false)
                         .then(data => loadAndPopulateFilters(data))
                         .catch(error => console.error('Error al cargar los datos:', error));
                     break;
+
                 case 'Tab6':
                     loadTableData('editable-container-tab6', 'Tab6', 'hpr_oee', true);
                     break;
@@ -61,30 +66,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
     
-    
+    // Para el botón de subir
+    document.getElementById('upload-form').addEventListener('submit', function (event) {
+        event.preventDefault();  // Previene el comportamiento por defecto del formulario
+        var formData = new FormData(this);
+
+        // Enviar el formulario a la ruta '/upload' usando fetch
+        fetch('http://127.0.0.1:5000/uploads', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => document.getElementById('upload-status').innerText = data.message)
+            .catch(error => console.error('Error al subir el archivo:', error));
+    });
 
     // Abrir la primera pestaña por defecto
     document.querySelector('.tablinks').click();
 });
-
-
-// Para el botón de subir
-document.getElementById('upload-form').addEventListener('submit', function (event) {
-    event.preventDefault();  // Previene el comportamiento por defecto del formulario
-    var formData = new FormData(this);
-
-    // Enviar el formulario a la ruta '/upload' usando fetch
-    fetch('http://127.0.0.1:5000/uploads', {
-        method: 'POST',
-        body: formData
-    })
-        .then(response => response.json())
-        .then(data => document.getElementById('upload-status').innerText = data.message)
-        .catch(error => console.error('Error al subir el archivo:', error));
-});
-
-
-
 
 
 // Para el scroll (si es necesario)
@@ -93,12 +92,22 @@ window.onscroll = function () {
 };
 
 
+
 // Objeto global para almacenar filtros activos por columna
 const globalActiveFilters  = {};
 
 
 // Objeto para almacenar los filtros seleccionados
 const selectedFilters = {};
+
+
+// funcion para reiniciar la pestaña Tab3
+function resetTab3() {
+    const fileInput = document.getElementById('file-input');
+    fileInput.value = ''; // Restablecer el contenido de la pestaña
+    // Puedes agregar más lógica aquí para recargar datos o restablecer el estado
+    
+}
 
 
 // Mostrar el botón cuando el usuario se desplaza hacia abajo 20px desde la parte superior del documento
@@ -177,6 +186,10 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
         console.error(`Error fetching data for table ${table}:`, error);
     }
 }
+
+
+
+
 
 
 //funcion para crear el menu del filtro y el boton
@@ -315,6 +328,20 @@ function applyFilters(columns, table) {
 }
 
 
+// Función para actualizar los filtros seleccionados
+function updateSelectedFilters(selectId, value) {
+    if (value.length > 0) {
+        selectedFilters[selectId] = value; // Actualiza el valor seleccionado
+    } else {
+        delete selectedFilters[selectId]; // Elimina el filtro si no hay selección
+    }
+}
+
+
+
+
+
+
 function renderEditableTable(response, containerId) {
     const {table_name, columns, data } = response;
     const container = document.getElementById(containerId);
@@ -417,8 +444,6 @@ function createTableBody(columns, data, containerId, globalActiveFilters, table,
 }
 
 
-
-
 function createEditableCell(row, column, data, rowIndex, table_name) {
     const td = document.createElement('td');
     const cellValue = row[column] !== null && row[column] !== undefined ? row[column] : '';
@@ -479,7 +504,6 @@ function createEditableCell(row, column, data, rowIndex, table_name) {
 
     return td;
 }
-
 
 
 function createButtonCell(rowElement, tbody, data, table_name) {
@@ -545,6 +569,22 @@ function updateTableRows(tbody, data, globalActiveFilters, columns) {
 }
 
 
+// Función para actualizar el JSON de la tabla
+async function updateTableJson(table_name, data) {
+    // Obtener el formato de JSON usando loadTableData
+    const originalData = await loadTableData('editable-container-tab2', 'Tab2', table_name, false);
+    if (!originalData) {
+        console.error('Error al obtener el formato de JSON');
+        return;
+    }
+    
+     // Reemplazar originalData.data con data
+    originalData.data = data;
+    saveData(originalData)
+ 
+}
+
+
 async function saveData(data) {
     try {
         const response = await fetch('http://localhost:5000/save', {
@@ -570,14 +610,7 @@ async function saveData(data) {
 }
 
 
-// Función para actualizar los filtros seleccionados
-function updateSelectedFilters(selectId, value) {
-    if (value.length > 0) {
-        selectedFilters[selectId] = value; // Actualiza el valor seleccionado
-    } else {
-        delete selectedFilters[selectId]; // Elimina el filtro si no hay selección
-    }
-}
+
 
 
 function populateUniqueSelect(json, property, selectId) {
@@ -630,12 +663,6 @@ async function loadAndPopulateFilters(data) {
     populateUniqueSelect(data, 'areas', 'filter-areas'); // Filtro Semana
 }
 
-
-function getSelectedValues(selectId) {
-    const select = document.getElementById(selectId);
-    const selectedValues = [...select.selectedOptions].map(option => option.value);
-    return selectedValues;
-}
 
 function applyFiltersAndCalculate() {
     return Promise.all([
@@ -700,7 +727,6 @@ function applyFiltersAndCalculate() {
 }
 
 
-
 // Función auxiliar para calcular los minutos por ID o Línea
 function calculateTotalMinutesById(filteredData, minutosAverias, idField, valueField) {
     filteredData.forEach(row => {
@@ -743,22 +769,6 @@ function calculateTotal(obj) {
 }
 
 
-// Función para actualizar el JSON de la tabla
-async function updateTableJson(table_name, data) {
-    // Obtener el formato de JSON usando loadTableData
-    const originalData = await loadTableData('editable-container-tab2', 'Tab2', table_name, false);
-    if (!originalData) {
-        console.error('Error al obtener el formato de JSON');
-        return;
-    }
-    
-     // Reemplazar originalData.data con data
-    originalData.data = data;
-    saveData(originalData)
- 
- 
-}
-
 // Función para calcular MTTR, MTBF y Disponibilidad
 function calculateMetrics(minutosAverias, minutosOEE, metrics) {
     for (const id in minutosAverias.minutos) {
@@ -780,6 +790,47 @@ function calculateMetrics(minutosAverias, minutosOEE, metrics) {
     }
 
     return metrics;
+}
+
+
+function calculateOEEAverage(data) {
+    const oeeTotals = { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }; // Suma total de OEE por ID
+    const counts = { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }; // Cantidad de registros por ID
+    let totalOEE = 0; // Suma total de OEE para todos los registros
+    let totalCount = 0; // Contador total de registros
+
+    // Recorrer los datos y acumular OEE por ID
+    data.forEach(row => {
+        const id = row.linea; // Suponiendo que cada fila tiene un campo `id` (L1, L2, etc.)
+        const oeeValue = parseFloat(row.oee); // Convertir el valor de OEE a número
+
+        if (id && !isNaN(oeeValue)) { // Verificar que el ID y el valor sean válidos
+            oeeTotals[id] = (oeeTotals[id] || 0) + oeeValue; // Sumar el OEE al total por ID
+            counts[id] = (counts[id] || 0) + 1; // Incrementar el contador por ID
+
+            // Sumar el OEE total
+            totalOEE += oeeValue;
+            totalCount++;
+        }
+    });
+
+    // Calcular los promedios por ID
+    const oeeAverages = {};
+    Object.keys(oeeTotals).forEach(id => {
+        if (counts[id] > 0) {
+            oeeAverages[id] = ( (oeeTotals[id] / counts[id]) * 100 ).toFixed(2) + '%'; // Promedio por ID
+        } else {
+            oeeAverages[id] = 0; // Si no hay datos, asignar 0
+        }
+    });
+
+    // Calcular el promedio total de OEE
+    const overallOEE = totalCount > 0 ? totalOEE / totalCount : 0;
+
+    // Asignar el promedio total a PLANTA
+    oeeAverages.PLANTA = (overallOEE * 100).toFixed(2) + '%';
+
+    return oeeAverages; // Devolver ambos valores
 }
 
 
@@ -825,6 +876,11 @@ function updateIndData(indData, minutosAverias, minutosOEE, metrics, avg) {
     return indData;
 }
 
+
+
+
+
+
 function cargarPowerBI() {
     fetch('/cargar-powerbi', { method: 'POST' })
         .then(response => response.json())
@@ -833,42 +889,3 @@ function cargarPowerBI() {
 }
 
 
-function calculateOEEAverage(data) {
-    const oeeTotals = { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }; // Suma total de OEE por ID
-    const counts = { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }; // Cantidad de registros por ID
-    let totalOEE = 0; // Suma total de OEE para todos los registros
-    let totalCount = 0; // Contador total de registros
-
-    // Recorrer los datos y acumular OEE por ID
-    data.forEach(row => {
-        const id = row.linea; // Suponiendo que cada fila tiene un campo `id` (L1, L2, etc.)
-        const oeeValue = parseFloat(row.oee); // Convertir el valor de OEE a número
-
-        if (id && !isNaN(oeeValue)) { // Verificar que el ID y el valor sean válidos
-            oeeTotals[id] = (oeeTotals[id] || 0) + oeeValue; // Sumar el OEE al total por ID
-            counts[id] = (counts[id] || 0) + 1; // Incrementar el contador por ID
-
-            // Sumar el OEE total
-            totalOEE += oeeValue;
-            totalCount++;
-        }
-    });
-
-    // Calcular los promedios por ID
-    const oeeAverages = {};
-    Object.keys(oeeTotals).forEach(id => {
-        if (counts[id] > 0) {
-            oeeAverages[id] = ( (oeeTotals[id] / counts[id]) * 100 ).toFixed(2) + '%'; // Promedio por ID
-        } else {
-            oeeAverages[id] = 0; // Si no hay datos, asignar 0
-        }
-    });
-
-    // Calcular el promedio total de OEE
-    const overallOEE = totalCount > 0 ? totalOEE / totalCount : 0;
-
-    // Asignar el promedio total a PLANTA
-    oeeAverages.PLANTA = (overallOEE * 100).toFixed(2) + '%';
-
-    return oeeAverages; // Devolver ambos valores
-}
