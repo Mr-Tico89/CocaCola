@@ -52,7 +52,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     -- Insertar un nuevo registro en DB_AVERIAS_CONSOLIDADO
     INSERT INTO datos_maquinaria.DB_AVERIAS_CONSOLIDADO (
-        ID, MES, SEMANA, FECHA, AÑO, TURNO, MAQUINA, MINUTOS, SINTOMA, AREAS, OBSERVACIONES
+        ID, MES, SEMANA, FECHA, A±O, TURNO, MAQUINA, MINUTOS, SINTOMA, AREAS, OBSERVACIONES
     )
     VALUES (
         -- Determinar el valor de ID basado en Machine_Name
@@ -74,12 +74,12 @@ BEGIN
         CASE 
             WHEN TRIM(NEW.Shift_Name) LIKE '% No%' THEN 'Turno Noche'
             WHEN TRIM(NEW.Shift_Name) LIKE '%Tarde' THEN 'Turno Tarde'
-            ELSE E'Turno Día'
+            ELSE E'Turno D\u00eda' 
         END,
         -- Nombre de la máquina
         NEW.ReasonState_Group2,
         -- Calcular los minutos redondeados
-        ROUND(CAST((NEW.Scheduled_Hours::FLOAT * 60) AS NUMERIC), 2),
+        ROUND(CAST(NEW.Scheduled_Hours AS NUMERIC) * 60, 3),
         -- Nombre del estado de la razón
         NEW.ReasonState_Name,
         -- Determinar áreas basadas en minutos
@@ -143,12 +143,10 @@ JOIN
 WHERE 
     nspname NOT IN ('pg_catalog', 'information_schema');
 
+
 --eliminar funciones
 DROP FUNCTION IF EXISTS update_db_averias_consolidado();
 DROP TRIGGER IF EXISTS 
-
-
--- hacer joins con tabla de area con hpr_oee y hacer input del filtro para sacar los calculos de la tabla 
 
 
 -- esto lo debe hacer al cargar los archivos desde la pagina mas o menos

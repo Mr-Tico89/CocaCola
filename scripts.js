@@ -1,77 +1,96 @@
+document.addEventListener('DOMContentLoaded', function () {
+    // Llamar a loadTableOptions cuando la página se carga
+    loadTableOptions();
 
-//para el boton de subir
-window.onscroll = function() {scrollFunction()};
+    // Agregar eventos a los filtros
+    document.querySelectorAll('.filter-select').forEach(select => {
+        select.addEventListener('change', (event) => {
+            const selectId = event.target.id.replace('filter-', ''); // ID del select
+            const value = Array.from(event.target.selectedOptions).map(option => option.value); // Valores seleccionados
+            updateSelectedFilters(selectId, value);
+        });
+    });
+
+    // Agregar eventos a los botones de pestañas
+    document.querySelectorAll('.tablinks').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const tabId = event.target.getAttribute('onclick').match(/'(.*?)'/)[1]; // Extrae el ID de la pestaña
+
+            // Definir las acciones para cada pestaña
+            switch (tabId) {
+                case 'Tab2':
+                    
+                    loadTableData('editable-container-tab2', 'Tab2', 'db_averias_consolidado', true)
+                    break;
+                case 'Tab4':
+                    loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
+                    loadTableData('Indicador-container', 'Tab4', 'db_averias_consolidado', false)
+                        .then(data => loadAndPopulateFilters(data))
+                        .catch(error => console.error('Error al cargar los datos:', error));
+                    break;
+                case 'Tab6':
+                    loadTableData('editable-container-tab6', 'Tab6', 'hpr_oee', true);
+                    break;
+            }
+        });
+    });
+
+    document.getElementById('Gen-button').addEventListener('click', async function (event) {
+        try {
+            const tableContainer = document.getElementById('Indicador-container');
+    
+            // Mostrar un mensaje de carga
+            tableContainer.innerHTML = '<p>Actualizando datos...</p>';
+    
+            // Ejecutar los filtros y cálculos
+            const data = await applyFiltersAndCalculate();
+    
+            // Guardar los datos procesados
+            await saveData(data);
 
 
-// Abrir la primera pestaña por defecto
-document.querySelector('.tablinks').click();
+    
+            // Cargar la tabla actualizada
+            await loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
+            console.log('Tabla actualizada correctamente.');
+        } catch (error) {
+            console.error('Error durante el proceso:', error);
+    
+            const tableContainer = document.getElementById('Indicador-container');
+            tableContainer.innerHTML = '<p>Error al actualizar los datos.</p>';
+        }
+    });
+    
+    
+
+    // Abrir la primera pestaña por defecto
+    document.querySelector('.tablinks').click();
+});
 
 
-// Maneja el envío del formulario
-document.getElementById('upload-form').addEventListener('submit', function(event) {
+// Para el botón de subir
+document.getElementById('upload-form').addEventListener('submit', function (event) {
     event.preventDefault();  // Previene el comportamiento por defecto del formulario
     var formData = new FormData(this);
 
     // Enviar el formulario a la ruta '/upload' usando fetch
-    fetch('http://127.0.0.1:5000/uploads', {  // Enviar datos al backend
+    fetch('http://127.0.0.1:5000/uploads', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('upload-status').innerText = data.message;
-    })
-    .catch(error => {
-        console.error('Error al subir el archivo:', error);
-    });
+        .then(response => response.json())
+        .then(data => document.getElementById('upload-status').innerText = data.message)
+        .catch(error => console.error('Error al subir el archivo:', error));
 });
 
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Llamamos a loadTableOptions cuando la página se carga
-    loadTableOptions();
-});
 
-// Agregar un evento `change` a todos los filtros
-document.querySelectorAll('.filter-select').forEach(select => {
-    select.addEventListener('change', (event) => {
-        const selectId = event.target.id.replace('filter-', ''); // ID del select
-        const value = Array.from(event.target.selectedOptions).map(option => option.value); // Valores seleccionados
-        updateSelectedFilters(selectId, value);
-    });
-});
 
-// Agregar eventos a los botones de pestañas
-document.addEventListener('DOMContentLoaded', async () => {
-    document.querySelectorAll('.tablinks').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const tabId = event.target.getAttribute('onclick').match(/'(.*?)'/)[1]; // Extrae el ID de la pestaña
-    
-            switch (tabId) {
-                case 'Tab2': //carga la tabla db_averias_consolidado al entrar en la pestaña 2
-                    loadTableData('editable-container-tab2', 'Tab2', 'db_averias_consolidado', true);
-                    break;
 
-                case 'Tab4': //carga la tabla indicador_semanal al entrar en la pestaña 4
-                    loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
-                    loadTableData('Indicador-container', 'Tab4', 'db_averias_consolidado', false)
-                    .then(data => {
-                        // Llamar a la función para cargar los datos y llenar los filtros
-                        loadAndPopulateFilters(data);
-                    })
-                    .catch(error => {
-                        console.error('Error al cargar los datos:', error);
-                    });
-                    break;
-
-                case 'Tab6': //carga la tabla HPR_OEE al entrar en la pestaña 6
-                    loadTableData('editable-container-tab6', 'Tab6', 'hpr_oee', true);
-                    break;
-
-            }
-        });
-    });
-});
+// Para el scroll (si es necesario)
+window.onscroll = function () {
+    scrollFunction();
+};
 
 
 // Objeto global para almacenar filtros activos por columna
@@ -151,15 +170,16 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
 
         if (render) {
             renderEditableTable(data, containerId);
-        } else {
             return data;
         }
+        return data;
     } catch (error) {
         console.error(`Error fetching data for table ${table}:`, error);
     }
 }
 
 
+//funcion para crear el menu del filtro y el boton
 function createDropdownFilter() {
     // Crear el contenedor principal del filtro
     const container = document.createElement('div');
@@ -226,7 +246,6 @@ function createFilterSelect(column, data, columns, table) {
 
     // Inicializar filtros activos para esta columna si no existen
     globalActiveFilters[column] = globalActiveFilters[column] || new Set();
-
     // Opciones únicas
     const uniqueValues = [...new Set(data.map(row => row[column]))];
     uniqueValues.forEach(value => {
@@ -242,9 +261,9 @@ function createFilterSelect(column, data, columns, table) {
         
         checkbox.addEventListener('change', () => {
             if (checkbox.checked) {
-                globalActiveFilters[column].add(value);
+                globalActiveFilters[column].add(String(value));
             } else {
-                globalActiveFilters[column].delete(value);
+                globalActiveFilters[column].delete(String(value));
             }
 
             // Aplicar filtros a la tabla
@@ -271,14 +290,13 @@ function createFilterSelect(column, data, columns, table) {
 //funcion de los filtros de las tablas
 function applyFilters(columns, table) {
     const rows = table.querySelectorAll('tbody tr');
-
     rows.forEach(row => {
         let shouldDisplay = true;
         columns.forEach(column => {
             if (globalActiveFilters[column] && globalActiveFilters[column].size > 0) {
                 const cell = row.querySelector(`td:nth-child(${columns.indexOf(column) + 2})`);
                 let cellValue = '';
-
+                
                 // Verificar si la celda contiene un input (para valores editables)
                 const input = cell.querySelector('input');
                 if (input) {
@@ -298,7 +316,7 @@ function applyFilters(columns, table) {
 
 
 function renderEditableTable(response, containerId) {
-    const { columns, data } = response;
+    const {table_name, columns, data } = response;
     const container = document.getElementById(containerId);
 
     // Limpiar la tabla existente
@@ -314,7 +332,7 @@ function renderEditableTable(response, containerId) {
     const thead = createTableHeader(columns, containerId, data, table, globalActiveFilters);
 
     // Crear cuerpo de la tabla
-    const tbody = createTableBody(columns, data, containerId, globalActiveFilters, table);
+    const tbody = createTableBody(columns, data, containerId, globalActiveFilters, table, table_name);
 
     // Ensamblar la tabla
     table.appendChild(thead);
@@ -369,23 +387,22 @@ function createHeaderCell(textContent, additionalClass = '') {
 }
 
 
-function createTableBody(columns, data, containerId, globalActiveFilters, table) {
+function createTableBody(columns, data, containerId, globalActiveFilters, table, table_name) {
     const tbody = document.createElement('tbody');
     tbody.classList.add('editable-table-body');
 
     data.forEach((row, rowIndex) => {
         const tr = tbody.insertRow();
 
-        const buttonCell = createButtonCell(tr, tbody, data);
+        const buttonCell = createButtonCell(tr, tbody, data, table_name);
         if (!containerId.includes('editable-container')) { // ocultar la columna quitar para que filten bien los datos
             buttonCell.classList.add('hidden-column');
         }
         tr.appendChild(buttonCell);
         
-
         columns.forEach(column => {
             const td = containerId.includes('editable-container')
-                ? createEditableCell(row, column, data, rowIndex)
+                ? createEditableCell(row, column, data, rowIndex, table_name)
                 : createTextCell(row[column]);
             tr.appendChild(td);
         });
@@ -400,11 +417,14 @@ function createTableBody(columns, data, containerId, globalActiveFilters, table)
 }
 
 
-//funcion de las celdas editables
-function createEditableCell(row, column, data, rowIndex) {
+
+
+function createEditableCell(row, column, data, rowIndex, table_name) {
     const td = document.createElement('td');
-    const cellValue = row[column] || ''; // Handle missing values
+    const cellValue = row[column] !== null && row[column] !== undefined ? row[column] : '';
     
+
+    // Manejar la columna 'areas' con un <select>
     if (column === 'areas' && cellValue !== 'Paros Menores') {
         const select = document.createElement('select');
         const options = ['', 'Mecánico', 'Eléctrico'];
@@ -413,54 +433,57 @@ function createEditableCell(row, column, data, rowIndex) {
             const option = document.createElement('option');
             option.value = optionValue;
             option.textContent = optionValue;
-            
+
             if (cellValue === optionValue) {
                 option.selected = true;
             }
+
             select.appendChild(option);
         });
+
+
+        // Agregar evento de cambio para actualizar el valor en los datos
         select.addEventListener('change', (e) => {
             data[rowIndex][column] = e.target.value;
-            saveData(data);
+            updateTableJson(table_name, data)
         });
+
         td.appendChild(select);
     } 
-
-    // Solo permitir edición en las columnas 'sintoma' y 'observaciones'
-    else if (column === 'sintoma' || column === 'observaciones' || column === 'OEE_(%)') {
-        // Crear un input editable
+    // Manejar columnas 'sintoma', 'observaciones', o 'OEE' con <input>
+    else if (['sintoma', 'observaciones', 'oee'].includes(column)) {
         const input = document.createElement('input');
         input.type = 'text';
-        input.placeholder = 'Editar'
-        input.value = cellValue; // Valor inicial
+        input.placeholder = 'Editar';
+        input.value = cellValue;
 
-        // Forzar mayúsculas solo en la columna 'observaciones'
+        // Forzar mayúsculas en 'observaciones'
         if (column === 'observaciones') {
             input.addEventListener('input', () => {
                 input.value = input.value.toUpperCase();
             });
         }
 
-        // Guardar cambios al perder el foco
+        // Actualizar los datos al perder el foco
         input.addEventListener('blur', () => {
             data[rowIndex][column] = input.value;
-            saveData(data)
+            updateTableJson(table_name, data)
         });
 
         td.appendChild(input);
-    }
+    } 
+    // Manejar celdas normales sin edición
     else {
-
-        td.textContent = cellValue; // Valor predeterminado
+        td.textContent = cellValue;
     }
 
     return td;
 }
 
 
-function createButtonCell(rowElement, tbody, data) {
+
+function createButtonCell(rowElement, tbody, data, table_name) {
     const buttonCell = document.createElement('td');
-    buttonCell.classList.add('action-cell');
 
     const button = document.createElement('button');
     button.classList.add('delete-button');
@@ -480,9 +503,7 @@ function createButtonCell(rowElement, tbody, data) {
 
                 // Eliminar la fila del DOM
                 rowElement.remove();
-
-                // Guardar los datos actualizados
-                saveData(data);
+                updateTableJson(table_name, data)
             } else {
                 console.error('No se encontró la fila en el DOM para eliminar.');
             }
@@ -496,7 +517,7 @@ function createButtonCell(rowElement, tbody, data) {
 
 function createTextCell(content) {
     const td = document.createElement('td');
-    td.textContent = content || '';
+    td.textContent = content !== null && content !== undefined ? content : '0';
     return td;
 }
 
@@ -524,30 +545,29 @@ function updateTableRows(tbody, data, globalActiveFilters, columns) {
 }
 
 
-function saveData(data) {
-    column_names = ["id", "mes", "semana", "fecha", "año", "turno", "maquina", "sintoma", "areas", "minutos", "observaciones"]
-    datas = {
-        "columns": column_names,
-        "data": data
-    }
-    fetch('http://localhost:5000/save', {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        
-        body: JSON.stringify(datas)
-    })
-    .then(response => response.json())
-    .then(result => {
+async function saveData(data) {
+    try {
+        const response = await fetch('http://localhost:5000/save', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        // Verificar si la respuesta fue exitosa
+        if (!response.ok) {
+            throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
+        }
+
+        const result = await response.json();
         console.log('Datos guardados:', result);
-    })
-    .catch(error => {
+        return result; // Devolver los datos guardados
+    } catch (error) {
         console.error('Error al guardar los datos:', error);
-    });
+        throw error; // Lanzar el error para que sea manejado en el nivel superior
+    }
 }
-
-
 
 
 // Función para actualizar los filtros seleccionados
@@ -557,10 +577,6 @@ function updateSelectedFilters(selectId, value) {
     } else {
         delete selectedFilters[selectId]; // Elimina el filtro si no hay selección
     }
-
-    // Convertir el objeto a formato JSON
-    const filtersJSON = JSON.stringify(selectedFilters);
-    console.log(filtersJSON); // Imprime el JSON en la consola para su uso
 }
 
 
@@ -621,65 +637,238 @@ function getSelectedValues(selectId) {
     return selectedValues;
 }
 
-
-// Función para aplicar los filtros y realizar cálculos
 function applyFiltersAndCalculate() {
-    loadTableData('Indicador-container', 'Tab4', 'db_averias_consolidado', false)
-    .then(json => {
-        if (!json || !json.data) {
-            console.error("Los datos de la tabla no son válidos.");
-            return;
+    return Promise.all([
+        loadTableData('Indicador-container', 'Tab4', 'db_averias_consolidado', false),
+        loadTableData('Indicador-container', 'Tab4', 'hpr_oee', false),
+        loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', false)
+    ])
+    .then(([averiasData, oeeData, indData]) => {
+        if (!averiasData || !averiasData.data || !oeeData || !oeeData.data) {
+            throw new Error("Los datos de las tablas no son válidos.");
         }
 
         // Filtrar los datos según los filtros seleccionados
-        const filteredData = json.data.filter(row => {
+        const filteredAverias = averiasData.data.filter(row => {
             return Object.entries(selectedFilters).every(([key, values]) => {
                 const rowValue = String(row[key] || ""); // Asegurarse de que el valor sea una cadena
-                return values.includes(rowValue); // Comparar si el valor de la fila está en los valores seleccionados
+                return values.includes(rowValue);
             });
         });
 
-        // Si no hay datos filtrados, mostrar un mensaje de advertencia
-        if (filteredData.length === 0) {
-            console.warn("No se encontraron datos que coincidan con los filtros.");
-        }
-
-        // Valores predeterminados para minutos por id (columna minutos de la tabla)
-        let minutos = {"L1": 0, "L2": 0, "L3": 0, "L4": 0, "PLANTA": 0};
-
-        // Filtrar los datos por valores únicos de "id" y luego sumar los minutos
-        const uniqueIds = [...new Set(filteredData.map(row => row.id))]; // Extrae los valores únicos de "id"
-
-        // Sumar los minutos de cada "id" único
-        uniqueIds.forEach(id => {
-            // Filtrar las filas para cada id único
-            const rowsForId = filteredData.filter(row => row.id === id);
-            const totalMinutesForId = rowsForId.reduce((sum, row) => sum + (parseFloat(row.minutos) || 0), 0);
-
-            // Actualizar los minutos en el objeto minutos
-            if (minutos.hasOwnProperty(id)) {
-                minutos[id] = totalMinutesForId;
-            } else {
-                minutos[id] = totalMinutesForId; // Si el id no está, lo añadimos dinámicamente
-            }
+        const filteredOEE = oeeData.data.filter(row => {
+            return Object.entries(selectedFilters).every(([key, values]) => {
+                // Ignorar el filtro de "area" para esta tabla
+                if (key === 'areas') return true;
+                const rowValue = String(row[key] || ""); // Asegurarse de que el valor sea una cadena
+                return values.includes(rowValue);
+            });
         });
 
-        // Sumar el total de minutos de todos los id y actualizar "TOTAL"
-        const totalMinutes = Object.values(minutos).reduce((sum, value) => sum + value, 0);
-        minutos["PLANTA"] = totalMinutes; // Guardamos el total global
+        // Inicializar objetos de minutos para cada tabla
+        let minutosAverias = { 
+            minutos: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
+            countMin: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }
+        };
 
-        console.log("Total de minutos por ID:", minutos);
+        let minutosOEE = { 
+            minutos: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
+            countMin: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
+            oee: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }
+        };
+
+        let metrics = { 
+            mttr: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
+            mtbf: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
+            disp: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }
+        };
+        // Calcular minutos para ambas tablas usando la función auxiliar con los campos específicos
+        minutosAverias = calculateTotalMinutesById(filteredAverias, minutosAverias, 'id', 'minutos');
+        minutosOEE = calculateTotalMinutesById(filteredOEE, minutosOEE, 'linea', 'min');
+        metrics = calculateMetrics(minutosAverias, minutosOEE, metrics);
+        const avg = calculateOEEAverage(filteredOEE)
+
+        updateIndData(indData, minutosAverias, minutosOEE, metrics, avg);
+
+        // Devolver los datos procesados
+        return indData;
     })
     .catch(error => {
         console.error("Error al cargar los datos:", error);
+        throw error; // Propagar el error para que sea manejado en el nivel superior
     });
 }
 
 
 
+// Función auxiliar para calcular los minutos por ID o Línea
+function calculateTotalMinutesById(filteredData, minutosAverias, idField, valueField) {
+    filteredData.forEach(row => {
+        const id = row[idField]; // Campo usado como clave (ej. "id" o "linea")
+        const value = parseFloat(row[valueField]); // Campo usado para sumar (ej. "minutos" o "min")
+
+        if (!id || isNaN(value)) {
+            console.warn(`Fila ignorada: ${idField}="${id}", ${valueField}="${row[valueField]}"`);
+            return; // Ignorar filas sin clave o sin valor válido
+        }
+
+        // Sumar los valores del campo especificado
+        minutosAverias.minutos[id] += value;
+        minutosAverias.countMin[id] += 1;  // Contar la cantidad de registros por ID
+    });
+
+    // Calcular el total global y aproximar a la centésima
+    minutosAverias.minutos.PLANTA = calculateTotal(minutosAverias.minutos);
+    minutosAverias.countMin.PLANTA = calculateTotal(minutosAverias.countMin);
+
+    // Aproximar los valores individuales a la centésima
+    for (const key in minutosAverias.minutos) {
+        if (key !== 'PLANTA') {
+            minutosAverias.minutos[key] = parseFloat(minutosAverias.minutos[key].toFixed(2));
+        }
+    }
+
+    return minutosAverias;
+}
 
 
-// Agregar el evento al botón "Generar Datos"
-document.getElementById('Gen-button').addEventListener('click', () => {
-    applyFiltersAndCalculate();
-});
+// Función para calcular el total global y aproximar a la centésima
+function calculateTotal(obj) {
+    return parseFloat(
+        Object.values(obj)
+            .filter(value => typeof value === 'number')
+            .reduce((sum, value) => sum + value, 0)
+            .toFixed(2)
+    );
+}
+
+
+// Función para actualizar el JSON de la tabla
+async function updateTableJson(table_name, data) {
+    // Obtener el formato de JSON usando loadTableData
+    const originalData = await loadTableData('editable-container-tab2', 'Tab2', table_name, false);
+    if (!originalData) {
+        console.error('Error al obtener el formato de JSON');
+        return;
+    }
+    
+     // Reemplazar originalData.data con data
+    originalData.data = data;
+    saveData(originalData)
+ 
+ 
+}
+
+// Función para calcular MTTR, MTBF y Disponibilidad
+function calculateMetrics(minutosAverias, minutosOEE, metrics) {
+    for (const id in minutosAverias.minutos) {
+        if (minutosAverias.minutos.hasOwnProperty(id) && minutosAverias.countMin.hasOwnProperty(id)) {
+            const totalMinutosDetencion = minutosAverias.minutos[id];
+            const numeroAverias = minutosAverias.countMin[id];
+            const totalMinutosProduccion = minutosOEE.minutos[id];
+
+            // Calcular MTTR
+            metrics.mttr[id] = numeroAverias > 0 ? parseFloat((totalMinutosDetencion / numeroAverias).toFixed(2)) : 0;
+
+            // Calcular MTBF (convertido a horas)
+            metrics.mtbf[id] = numeroAverias > 0 ? parseFloat((totalMinutosProduccion / numeroAverias / 60).toFixed(2)) : 0;
+
+            // Calcular Disponibilidad (en porcentaje)
+            const disponibilidad = totalMinutosProduccion + totalMinutosDetencion;
+            metrics.disp[id] = disponibilidad > 0 ? parseFloat(((totalMinutosProduccion / disponibilidad) * 100).toFixed(2)) : 0;
+        }
+    }
+
+    return metrics;
+}
+
+
+// Función para actualizar indData
+function updateIndData(indData, minutosAverias, minutosOEE, metrics, avg) {
+    indData.data.forEach(row => {
+        const id = row.total_general; // Suponiendo que cada fila tiene un campo 'total_general' que coincide con los IDs de minutosAverias y minutosOEE
+
+        // Actualizar minutosAverias
+        if (minutosAverias.minutos.hasOwnProperty(id)) {
+            row.minutos = minutosAverias.minutos[id];
+        }
+
+        // Actualizar minutosAverias
+        if (minutosAverias.countMin.hasOwnProperty(id)) {
+            row.averias = minutosAverias.countMin[id];
+        }
+
+        // Actualizar minutosOEE
+        if (minutosOEE.minutos.hasOwnProperty(id)) {
+            row.hpr = minutosOEE.minutos[id];
+        }  
+
+        // Actualizar metrics
+        if (metrics.mttr.hasOwnProperty(id)) {
+            row.mttr = metrics.mttr[id];
+        }
+
+        if (metrics.mtbf.hasOwnProperty(id)) {
+            row.mtbf = metrics.mtbf[id];
+        }
+
+        if (metrics.disp.hasOwnProperty(id)) {
+            row.disp = metrics.disp[id];
+        }
+
+        if (avg.hasOwnProperty(id)) {
+            row.oee = avg[id];
+        }
+
+    });
+
+    return indData;
+}
+
+function cargarPowerBI() {
+    fetch('/cargar-powerbi', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => alert(data.mensaje))
+        .catch(err => console.error('Error:', err));
+}
+
+
+function calculateOEEAverage(data) {
+    const oeeTotals = { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }; // Suma total de OEE por ID
+    const counts = { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }; // Cantidad de registros por ID
+    let totalOEE = 0; // Suma total de OEE para todos los registros
+    let totalCount = 0; // Contador total de registros
+
+    // Recorrer los datos y acumular OEE por ID
+    data.forEach(row => {
+        const id = row.linea; // Suponiendo que cada fila tiene un campo `id` (L1, L2, etc.)
+        const oeeValue = parseFloat(row.oee); // Convertir el valor de OEE a número
+
+        if (id && !isNaN(oeeValue)) { // Verificar que el ID y el valor sean válidos
+            oeeTotals[id] = (oeeTotals[id] || 0) + oeeValue; // Sumar el OEE al total por ID
+            counts[id] = (counts[id] || 0) + 1; // Incrementar el contador por ID
+
+            // Sumar el OEE total
+            totalOEE += oeeValue;
+            totalCount++;
+        }
+    });
+
+    // Calcular los promedios por ID
+    const oeeAverages = {};
+    Object.keys(oeeTotals).forEach(id => {
+        if (counts[id] > 0) {
+            oeeAverages[id] = ( (oeeTotals[id] / counts[id]) * 100 ).toFixed(2) + '%'; // Promedio por ID
+        } else {
+            oeeAverages[id] = 0; // Si no hay datos, asignar 0
+        }
+    });
+
+    // Calcular el promedio total de OEE
+    const overallOEE = totalCount > 0 ? totalOEE / totalCount : 0;
+
+    // Asignar el promedio total a PLANTA
+    oeeAverages.PLANTA = (overallOEE * 100).toFixed(2) + '%';
+
+    return oeeAverages; // Devolver ambos valores
+}

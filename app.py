@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2
-import json
+import pandas as pd
+import subprocess
 import os
 
 
@@ -17,15 +18,18 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
+# Configuración de la conexión a PostgreSQL
+config = {
+    "dbname": "cocacola",
+    "user": "postgres",
+    "password": "1234",
+    "host": "localhost",  # Cambia si es un servidor remoto
+    "port": 5432,         # Puerto de PostgreSQL
+    "options":"-c client_encoding=WIN1252"        
+}
 
 def query_db(query, args=(), one=False):
-    conn = psycopg2.connect(
-        dbname="cocacola",
-        user="postgres",
-        password="1234",
-        host="localhost",
-        port="5432"
-    )
+    conn = psycopg2.connect(**config)
     cur = conn.cursor()
     cur.execute(query, args)
     rv = cur.fetchall()
@@ -83,6 +87,7 @@ def get_table_data(table_name):
 
     # Crear un objeto JSON que incluya columnas y datos
     response = {
+        "table_name": table_name,
         "columns": column_names,
         "data": flattened_rows
     }
@@ -95,16 +100,8 @@ def get_table_data(table_name):
 def load_data_to_db(file_path, filename):
     try:
         # Conectar a la base de datos
-        conn = psycopg2.connect(
-            dbname="cocacola",
-            user="postgres",
-            password="1234",
-            host="localhost",
-            port="5432",
-            options="-c client_encoding=WIN1252"
-        )
+        conn = psycopg2.connect(**config)
         cursor = conn.cursor()
-
 
         # Verificar si el nombre del archivo es DATASHEEET_FALLAS_SEMANALES
         if 'DATASHEEETFALLASSEMANALES' in filename:
@@ -154,6 +151,7 @@ def load_data_to_db(file_path, filename):
 
     except Exception as e:
         print(f"Error: {e}")
+        
     finally:
         # Cerrar la conexión
         if conn:
@@ -161,6 +159,7 @@ def load_data_to_db(file_path, filename):
             conn.close()
 
 
+#funcion para cargar archivos a postgreSQL
 @app.route('/uploads', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -192,75 +191,80 @@ def upload_file():
 
 @app.route('/save', methods=['PUT'])
 def save():
-    # Intentamos obtener el JSON enviado por el cliente
+    # Obtener el JSON enviado por el cliente
     data = request.get_json()
-    columns = data.get('columns', [])
-    data = data.get('data', [])
-    ordered_data = []
-    for record in data:
-        ordered_record = {col: record.get(col.lower()) for col in columns}
-        ordered_data.append(ordered_record)
 
-    if ordered_data is None or not isinstance(ordered_data, list):
-        return jsonify({'error': 'El cuerpo debe ser un array JSON válido'}), 400
+    table_name = data.get('table_name')  # Nombre de la tabla
+    columns = data.get('columns')  # Orden de las columnas
+    rows = data.get('data')  # Filas de datos
 
-    # Validación adicional del JSON
-    if not all(isinstance(item, dict) for item in ordered_data):
-        return jsonify({'error': 'Cada elemento del array debe ser un objeto JSON'}), 400
+    # Validaciones iniciales
+    if not table_name or not columns or not rows:
+        return jsonify({'error': 'El JSON debe incluir table_name, columns y data'}), 400
+    if not isinstance(columns, list) or not isinstance(rows, list):
+        return jsonify({'error': 'Columns debe ser una lista y data debe ser una lista de objetos JSON'}), 400
 
-    # Intentamos insertar los datos en la base de datos
     try:
-        conn = psycopg2.connect(
-            dbname="cocacola",
-            user="postgres",
-            password="1234",
-            host="localhost",
-            port="5432",
-            options="-c client_encoding=WIN1252"
-        )
+        # Sanitizar nombres de columnas (reemplazar caracteres especiales)
+        sanitized_columns = [f'"{col}"' if any(c in col for c in '()% ') else col for col in columns]
+
+        # Conexión a la base de datos
+        conn = psycopg2.connect(**config)
         cur = conn.cursor()
 
-        # 1. Realizar TRUNCATE (vaciar la tabla)
-        cur.execute("TRUNCATE TABLE DB_AVERIAS_CONSOLIDADO RESTART IDENTITY")
+        # TRUNCATE para limpiar la tabla antes de actualizar
+        cur.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY")
 
-        # 2. Insertar nuevos datos
-        for item in data:
-            query = """
-                INSERT INTO DB_AVERIAS_CONSOLIDADO (id, mes, semana, fecha, año, turno, maquina, sintoma, areas, minutos, observaciones)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            values = (item['id'], item['mes'], item['semana'], item['fecha'], item['año'], item['turno'], item['maquina'], item['sintoma'], item['areas'], item['minutos'], item['observaciones'])
-            cur.execute(query, values)
+        # Preparar la consulta de inserción dinámica
+        column_names = ', '.join(sanitized_columns)
+        value_placeholders = ', '.join(['%s'] * len(columns))
+        insert_query = f"INSERT INTO {table_name} ({column_names}) VALUES ({value_placeholders})"
 
-        # 3. Asegúrate de hacer commit para guardar los cambios
+        # Insertar las filas
+        for row in rows:
+            # Mapear claves de data a columnas en caso de desajuste
+            values = tuple(row.get(col.replace('"', ''), None) for col in sanitized_columns)
+            cur.execute(insert_query, values)
+
+        # Confirmar los cambios
         conn.commit()
-
-        # 4. Ordenar los datos por ID y agrupar si es necesario (ejemplo usando GROUP BY)
-        query_select = """
-            SELECT id, mes, semana, fecha, año, turno, maquina, sintoma, areas, minutos, observaciones
-            FROM DB_AVERIAS_CONSOLIDADO
-            ORDER BY id ASC
-            -- Si necesitas usar GROUP BY, puedes agregarlo aquí
-        """
-        cur.execute(query_select)
-
-        # Cerrar la conexión
-        cur.close()
-        conn.close()
+        return jsonify({'status': 'success'}), 200
 
     except Exception as e:
-        # Si ocurre un error, revertimos los cambios
-        conn.rollback()
-        return jsonify({'error': f'Error al guardar los datos: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
     finally:
-        # Cerramos la conexión y el cursor en cualquier caso
         cur.close()
         conn.close()
 
-    # Si todo fue bien
-    return jsonify({'message': 'Datos guardados correctamente'}), 200
 
+@app.route('/cargar-powerbi', methods=['POST'])
+def cargar_powerbi():
+    try:
+        # Extraer datos de PostgreSQL
+        query = "SELECT * FROM tu_tabla"  # Cambia por tu consulta
+        connection = psycopg2.connect(**config)
+        df = pd.read_sql_query(query, connection)
+        connection.close()
+        
+        # Guardar datos en un CSV
+        csv_path = "datos.csv"
+        df.to_csv(csv_path, index=False)
+        print(f"Archivo CSV guardado en {csv_path}")
+
+        # Ruta al archivo Power BI (archivo .pbix)
+        pbix_path = r"C:\ruta\a\tu_archivo.pbix"  # Cambia esto por la ruta de tu archivo Power BI
+
+        # Comando para abrir Power BI Desktop y cargar el archivo .pbix
+        subprocess.Popen([r"C:\Program Files\Microsoft Power BI Desktop\bin\PBIDesktop.exe", pbix_path])
+        print("Power BI abierto con el archivo especificado")
+
+        return jsonify({"mensaje": "Power BI cargado con éxito"}), 200
+    
+    except Exception as e:
+
+        print(f"Error: {e}")
+        return jsonify({"mensaje": "Ocurrió un error", "error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=False)
