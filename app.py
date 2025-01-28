@@ -1,14 +1,18 @@
-from flask import Flask, request, jsonify
+import requests
+from flask import Flask, request, jsonify, render_template, send_file
 from flask_cors import CORS
+import tempfile
 import psycopg2
-import pandas as pd
-import subprocess
 import os
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
+
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Aumenta el límite a 16 MB
-CORS(app)  # Habilitar CORS para todas las rutas
+
+CORS(app)  # Permitir solo tu dominio
+
+
 
 # Configuración de la carpeta de subida
 UPLOAD_FOLDER = 'uploads'
@@ -18,11 +22,11 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
-# Configuración de la conexión a PostgreSQL
+# Configuración de la conexión a PostgreSQL, para nada seguro (investigar q ondis)
 config = {
     "dbname": "cocacola",
-    "user": "postgres",
-    "password": "1234",
+    "user": "webuser",
+    "password": "cocacola9041",
     "host": "localhost",  # Cambia si es un servidor remoto
     "port": 5432,         # Puerto de PostgreSQL
     "options":"-c client_encoding=WIN1252"        
@@ -56,6 +60,13 @@ def convert_to_utf8_without_bom(input_file):
 # Función para verificar si el archivo tiene una extensión permitida
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+
+@app.route('/')
+def index():
+    return render_template('interface.html')  # Sirve tu archivo HTML desde la carpeta 'templates'
+
 
 
 @app.route('/tables', methods=['GET'])
@@ -241,30 +252,30 @@ def save():
 @app.route('/cargar-powerbi', methods=['POST'])
 def cargar_powerbi():
     try:
-        # Extraer datos de PostgreSQL
-        query = "SELECT * FROM tu_tabla"  # Cambia por tu consulta
-        connection = psycopg2.connect(**config)
-        df = pd.read_sql_query(query, connection)
-        connection.close()
-        
-        # Guardar datos en un CSV
-        csv_path = "datos.csv"
-        df.to_csv(csv_path, index=False)
-        print(f"Archivo CSV guardado en {csv_path}")
+        # URL del archivo en Google Drive
+        file_url = "https://drive.google.com/uc?id=1bmG0gtAx3TXUtpD2sT5errQ_kIhbNaZC&export=download"
 
-        # Ruta al archivo Power BI (archivo .pbix)
-        pbix_path = r"C:\ruta\a\tu_archivo.pbix"  # Cambia esto por la ruta de tu archivo Power BI
+        # Descargar el archivo desde Google Drive
+        response = requests.get(file_url, stream=True)
+        if response.status_code != 200:
+            return jsonify({"mensaje": "No se pudo descargar el archivo", "error": f"HTTP {response.status_code}"}), 500
 
-        # Comando para abrir Power BI Desktop y cargar el archivo .pbix
-        subprocess.Popen([r"C:\Program Files\Microsoft Power BI Desktop\bin\PBIDesktop.exe", pbix_path])
-        print("Power BI abierto con el archivo especificado")
+        # Guardar el archivo temporalmente
+        temp_dir = tempfile.gettempdir()
+        temp_file_path = os.path.join(temp_dir, "planilla.pbix")
+        with open(temp_file_path, 'wb') as temp_file:
+            for chunk in response.iter_content(chunk_size=8192):
+                temp_file.write(chunk)
 
-        return jsonify({"mensaje": "Power BI cargado con éxito"}), 200
-    
+        print(f"Archivo descargado y guardado temporalmente en {temp_file_path}")
+
+        # Enviar el archivo al cliente para que el navegador lo descargue
+        return send_file(temp_file_path, as_attachment=True, download_name="planilla.pbix")
+
     except Exception as e:
-
         print(f"Error: {e}")
         return jsonify({"mensaje": "Ocurrió un error", "error": str(e)}), 500
 
+
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(host='0.0.0.0', port=8000, debug=False)
