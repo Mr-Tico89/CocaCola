@@ -1,8 +1,10 @@
 import requests
 from flask import Flask, request, jsonify, render_template, send_file
 from flask_cors import CORS
+from datetime import datetime
 import tempfile
 import psycopg2
+from psycopg2.extras import RealDictCursor
 import os
 
 
@@ -29,17 +31,35 @@ config = {
     "password": "cocacola9041",
     "host": "localhost",  # Cambia si es un servidor remoto
     "port": 5432,         # Puerto de PostgreSQL
-    "options":"-c client_encoding=WIN1252"        
+    "options":"-c client_encoding=UTF8"        
 }
 
-def query_db(query, args=(), one=False):
-    conn = psycopg2.connect(**config)
-    cur = conn.cursor()
-    cur.execute(query, args)
-    rv = cur.fetchall()
-    column_names = [desc[0] for desc in cur.description]
-    conn.close()
-    return (rv, column_names) if not one else (rv[0], column_names)
+#para realizar consultas a la base 
+def query_db(query, args=(), commit=False, one=False):
+    conn = None
+    try:
+        conn = psycopg2.connect(**config)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute(query, args)
+
+        if commit:  
+            conn.commit()  # Confirma cambios para INSERT, UPDATE, DELETE
+            return {"success": True}  # DELETE no devuelve datos
+
+        result = cur.fetchall() if not one else cur.fetchone()
+        return result
+
+    except Exception as e:
+        print(f"Error en query_db: {e}")  # Imprime errores en el servidor
+        if conn:
+            conn.rollback()  # Revertir cambios si hay un error
+        raise e  # Propaga el error para depuración
+
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
 
 
 # Función para cambiar la codificacion del archivo a utf8
@@ -68,43 +88,237 @@ def index():
     return render_template('interface.html')  # Sirve tu archivo HTML desde la carpeta 'templates'
 
 
-
+#para obtener los nombres de todas las tablas de la base de datos
 @app.route('/tables', methods=['GET'])
 def get_tables():
     query = "SELECT table_name FROM tabla_nombres;"
-    tables, _ = query_db(query)
-    table_names = [table[0] for table in tables]
+
+    tables = query_db(query)
+    # Extraer los nombres correctamente
+    if isinstance(tables, list) and tables:
+        table_names = [table["table_name"] for table in tables]
+    else:
+        table_names = []  # Si no hay datos, devolver lista vacía
+
     return jsonify(table_names)
 
 
-@app.route('/tables/<table_name>', methods=['GET'])
-def get_table_data(table_name):
-    # Crear lista de columnas en orden físico
-    query_columns = f"""
-    SELECT column_name
-    FROM information_schema.columns
-    WHERE table_schema = 'datos_maquinaria' AND table_name = '{table_name}'
-    ORDER BY ordinal_position;
-    """
-    columns, _ = query_db(query_columns) 
-    column_names = [col[0] for col in columns]  # Extraer nombres de columnas
-    if (table_name == 'db_averias_consolidado'):
-        query = f"SELECT row_to_json(t) FROM {table_name} t ORDER BY t.fecha;"
+#para obtener los valores unicos para el filtro
+@app.route('/tables/<table_name>/unique_values', methods=['GET'])
+def get_unique_values(table_name):
+    column = request.args.get('column')  # Obtener el nombre de la columna desde los parámetros de la URL
+    
+    # Inicializar los filtros
+    filters = []
+    params = []
+
+    # Procesar los filtros que se recibieron
+    for filter_column, filter_values in request.args.items():
+        if filter_column != "column":  # Ignorar el filtro de la columna
+            values = filter_values.split(',')
+            filters.append(f"{filter_column} IN ({', '.join(['%s'] * len(values))})")
+            params.extend(values)
+    
+    # Construir la consulta con los filtros (si existen)
+    filter_query = " AND ".join(filters) if filters else "1=1"  # Si no hay filtros, seleccionar todo
+
+    # Construir la consulta para obtener valores únicos con filtros
+    if column == "fecha":
+        query = f"SELECT DISTINCT TO_CHAR({column}, 'DD-MM-YYYY') FROM {table_name} WHERE {filter_query};"
     else:
-        query = f"SELECT row_to_json(t) FROM {table_name} t;"
-    # Ejecutar consulta para obtener los datos
-    rows, _ = query_db(query)
-    flattened_rows = [item for sublist in rows for item in sublist]
+        query = f"SELECT DISTINCT {column} FROM {table_name} WHERE {filter_query};"
 
-    # Crear un objeto JSON que incluya columnas y datos
-    response = {
-        "table_name": table_name,
-        "columns": column_names,
-        "data": flattened_rows
-    }
+    # Ejecutar la consulta
+    values = query_db(query, params)
+    
+    # Obtener los valores únicos correctamente
+    if isinstance(values, list) and values:
+        # Si devuelve diccionarios, acceder por clave
+        if isinstance(values[0], dict):
+            column_name = list(values[0].keys())[0]  # Obtener el nombre de la columna
+            unique_values = [row[column_name] for row in values]
+        else:
+            # Si devuelve listas o tuplas
+            unique_values = [row[0] for row in values]
+    else:
+        unique_values = []  # Lista vacía si no hay datos
 
-    # Enviar el JSON al frontend
-    return jsonify(response)
+    # Retornar los valores únicos como un objeto JSON
+    return jsonify({column: unique_values})
+
+
+
+#codigo para obtener los datos de las tablas 
+@app.route('/tables/<table_name>/filtered_data', methods=['GET'])
+def get_filtered_data(table_name):
+    try:
+        # Parámetros de paginación
+        page = int(request.args.get('page', 1))  # Página actual
+        per_page = int(request.args.get('per_page', 500))  # Filas por página
+        offset = (page - 1) * per_page  # Calcular desplazamiento
+        filters = []
+        params = []
+
+        # Obtener los nombres de las columnas
+        query_columns = """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'datos_maquinaria' AND table_name = %s
+        ORDER BY ordinal_position;
+        """
+        columns = query_db(query_columns, (table_name,))
+        column_names = [col["column_name"] for col in columns]  # Extraer nombres
+
+        # Aplicar filtros dinámicamente
+        for column, value in request.args.items():
+            if column in column_names:  # Evitar SQL Injection asegurando que la columna existe
+                values = value.split(',')
+                placeholders = ', '.join(['%s'] * len(values))
+                filters.append(f'"{column}" IN ({placeholders})')
+                params.extend(values)
+
+        filter_query = " AND ".join(filters) if filters else "1=1"
+        print(f"Filtro generado: {filter_query}")
+
+        # Consulta para obtener los datos paginados
+        query = f"""
+        SELECT row_to_json(t)
+        FROM (SELECT * FROM {table_name} WHERE {filter_query} LIMIT %s OFFSET %s) t
+        """
+        params.extend([per_page, offset])
+
+        # Obtener datos de la base de datos
+        data = query_db(query, params)
+
+        # Extraer los diccionarios JSON de las tuplas
+        formatted_data = [row["row_to_json"] for row in data]
+
+        # Obtener cantidad total de registros con filtros (sin paginación)
+        count_query = f"SELECT COUNT(*) AS count FROM {table_name} WHERE {filter_query}"
+        params_for_count = params[:-2]  # Eliminar LIMIT y OFFSET
+
+        total_count_result = query_db(count_query, params_for_count)
+        total_count = total_count_result[0]["count"] if total_count_result else 0
+
+        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
+
+        return jsonify({
+            "table_name": table_name,
+            "columns": column_names,
+            "data": formatted_data,
+            "total_count": total_count,
+            "total_pages": total_pages,
+            "current_page": page,
+            "per_page": per_page
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+
+
+
+
+
+@app.route('/update_row', methods=['POST'])
+def update_row():
+    try:
+        # Recibir el JSON desde el frontend
+        data = request.json
+        
+        # Verificar que los datos esenciales estén presentes
+        if not all(key in data for key in ["id", "fecha", "turno"]):
+            return jsonify({"error": "Faltan datos clave (id, fecha, turno)."}), 400
+
+        # Construir la consulta de actualización
+        update_query = f"""
+        UPDATE db_averias_consolidado
+        SET
+            mes = %s,
+            semana = %s,
+            año = %s,
+            turno = %s, 
+            sintoma = %s,
+            areas = %s,
+            observaciones = %s
+        WHERE
+            id = %s AND
+            fecha = %s AND
+            maquina = %s AND
+            minutos = %s 
+        """
+
+        # Parámetros para la consulta
+        params = [
+            data["mes"],
+            data["semana"],
+            data["año"],
+            data["turno"],
+            data["sintoma"],
+            data["areas"],
+            data["observaciones"],
+            data["id"],
+            data["fecha"],
+            data["maquina"],
+            data["minutos"]
+        ]
+
+        # Ejecutar la consulta
+        query_db(update_query, params)
+
+        return jsonify({"message": "Fila actualizada con éxito."}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+
+
+
+
+#eliminar una fila de la tabla
+@app.route('/delete_row', methods=['POST'])
+def delete_row():
+    try:
+        data = request.json
+        table_name = data.get("table_name")
+        row_data = data.get("row_data")
+        if not table_name or not row_data:
+            return jsonify({"success": False, "error": "Datos incompletos."}), 400
+
+        # Construir condición WHERE para identificar la fila
+        conditions = []
+        params = []
+        
+        for column, value in row_data.items():
+            if column == "observaciones":
+                # Manejar NULL para la columna "observaciones"
+                conditions.append(f"({column} = %s OR {column} IS NULL)")
+                params.append(value if value != "" else None)
+                
+            elif column == "minutos":
+                # Convertir "minutos" a tipo float
+                conditions.append(f"{column} = %s")
+                params.append(float(value))
+            
+            else:
+                # Condición general para otras columnas
+                conditions.append(f"{column} = %s")
+                params.append(value)
+
+
+        where_clause = " AND ".join(conditions)
+        query = f"DELETE FROM {table_name} WHERE {where_clause}"
+
+        # Ejecutar consulta
+        query_db(query, params, commit=True)
+        
+        return jsonify({"success": True, "message": "Fila eliminada con éxito."}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 
 # Función para cargar los datos en la base de datos después de subir el archivo
@@ -223,13 +437,18 @@ def save():
         conn = psycopg2.connect(**config)
         cur = conn.cursor()
 
-        # TRUNCATE para limpiar la tabla antes de actualizar
-        cur.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY")
+        if not table_name.startswith("indicador_semanal_historico"):
+            # TRUNCATE para limpiar la tabla antes de actualizar
+            cur.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY")
 
         # Preparar la consulta de inserción dinámica
         column_names = ', '.join(sanitized_columns)
         value_placeholders = ', '.join(['%s'] * len(columns))
-        insert_query = f"INSERT INTO {table_name} ({column_names}) VALUES ({value_placeholders})"
+        insert_query = f"""
+            INSERT INTO {table_name} ({column_names}) 
+            VALUES ({value_placeholders}) 
+            ON CONFLICT DO NOTHING
+        """
 
         # Insertar las filas
         for row in rows:

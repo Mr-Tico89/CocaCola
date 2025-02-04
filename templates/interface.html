@@ -35,8 +35,13 @@
     
 
     <div id="Tab2" class="tabcontent">
-        <div class="Save-container">
+        <div id="pagination">
+            <button id="prevPage" disabled>Anterior</button>
+            <span id="pageInfo"> Página 1 de 1 </span>
+            <button id="nextPage" disabled>Siguiente</button>
         </div>
+        
+
         <div id="editable-container-tab2" class="table-container"></div>
     </div>
 
@@ -89,12 +94,20 @@
 
 
     <div id="Tab6" class="tabcontent">
+        <div id="pagination">
+            <button id="prevPage" disabled>Anterior</button>
+            <span id="pageInfo"> Página 1 de 1 </span>
+            <button id="nextPage" disabled>Siguiente</button>
+        </div>
+        
+
         <div class="Save-container">
         </div>
         <div id="editable-container-tab6" class="table-container"></div>
     </div>
 
-    <button onclick="scrollToTop()" id="scrollToTopBtn" title="Go to top">↑</button>
+    <button id="scrollToTopBtn" onclick="scrollToTop()">Subir</button>
+
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

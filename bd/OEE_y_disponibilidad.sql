@@ -25,6 +25,8 @@ CREATE TABLE temp_OEEYDISPONIBILIDAD AS
 SELECT * FROM OEEYDISPONIBILIDAD LIMIT 0;
 
 
+CREATE INDEX idx_hpr_año_semana ON HPR_OEE (A±O, SEMANA);
+
 --cargar datos OEE
 \copy temp_OEEYDISPONIBILIDAD FROM 'C:\Users\matias\Desktop\CocaCola\tablas\OEEYDISPONIBILIDAD (13).csv' WITH DELIMITER ',' CSV HEADER ENCODING 'UTF8';
 
@@ -59,6 +61,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+INSERT INTO tabla_nombres (table_name)
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'datos_maquinaria';
 
 
 CREATE TRIGGER after_insert_oee_y_disponibilidad

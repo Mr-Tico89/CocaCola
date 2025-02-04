@@ -41,6 +41,8 @@ CREATE TABLE datos_maquinaria.DB_AVERIAS_CONSOLIDADO (
     OBSERVACIONES VARCHAR (255)
 );
 
+CREATE INDEX idx_año_semana ON db_averias_consolidado (A±O, SEMANA);
+
 --tabla temporal para datos en brutos
 CREATE TABLE temp_datasheet_fallas_semanales AS
 SELECT * FROM DATASHEEET_FALLAS_SEMANALES LIMIT 0;
@@ -103,17 +105,6 @@ AFTER INSERT ON datos_maquinaria.DATASHEEET_FALLAS_SEMANALES
 FOR EACH ROW
 EXECUTE FUNCTION update_db_averias_consolidado();
 
---cargar datos en la base 
-\copy temp_datasheet_fallas_semanales FROM 'C:\Users\matias\Desktop\cocacola\tablas\DATASHEEETFALLASSEMANALES (10).csv' WITH DELIMITER ',' CSV HEADER ENCODING 'UTF8';
-
--- Insertar datos en DATASHEEET_FALLAS_SEMANALES desde temp_datasheet_fallas_semanales
-INSERT INTO DATASHEEET_FALLAS_SEMANALES
-SELECT * FROM temp_datasheet_fallas_semanales;
-
--- Vaciar la tabla temp_datasheet_fallas_semanales después de la inserción
-TRUNCATE TABLE temp_datasheet_fallas_semanales;
-
-
 
 --ver triggers 
 SELECT 
@@ -162,7 +153,14 @@ DROP TRIGGER IF EXISTS
 --
 
 
-SELECT datname, pg_encoding_to_char(encoding) AS encoding
-FROM pg_database
-WHERE datname = 'cocacola';
 
+--copiar datos ya tratados
+\COPY DB_AVERIAS_CONSOLIDADO FROM 'C:\Users\matias\Desktop\CocaCola\tablas muestras\db_averias_consolidado.csv' with DELIMITER ',' CSV HEADER ENCODING 'UTF8';
+
+\COPY HPR_OEE FROM 'C:\Users\matias\Desktop\CocaCola\tablas muestras\PLANTILLA INDICADORES MTTO.csv' with DELIMITER ',' CSV ENCODING 'UTF8';
+
+
+--ver index 
+SELECT indexname, tablename
+FROM pg_indexes
+WHERE tablename = 'db_averias_consolidado';
