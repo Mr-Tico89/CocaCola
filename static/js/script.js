@@ -185,7 +185,7 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
 }
 
 
-function createDropdownFilter(column, tableName) {
+function createDropdownFilter(column, tableName, containerId) {
     // Crear el contenedor principal del filtro
     const container = document.createElement('div');
     container.classList.add('filter-container');
@@ -213,7 +213,7 @@ function createDropdownFilter(column, tableName) {
         if (globalActiveFilters[column]) {
             globalActiveFilters[column].clear();
         }
-        fetchFilteredData(tableName);
+        fetchFilteredData(tableName, containerId);
     });
 
     dropdownMenu.appendChild(clearButton);
@@ -269,22 +269,22 @@ async function fetchUniqueValues(column, tableName) {
 
 
 // Función madre para crear filtros dinámicos
-async function createFilterSelect(column, tableName) {
+async function createFilterSelect(column, tableName, containerId) {
     // Crear el contenedor para el filtro
-    const { container, dropdownMenu } = createDropdownFilter(column, tableName);
+    const { container, dropdownMenu } = createDropdownFilter(column, tableName, containerId);
 
     // Obtener valores únicos desde el backend
     const uniqueValues = await fetchUniqueValues(column, tableName);  
 
     // Agregar los checkboxes para los valores únicos obtenidos
-    addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName);
+    addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, containerId);
 
     return { container, activeFilters: globalActiveFilters };
 }
 
 
 // Función auxiliar para agregar los checkboxes al menú desplegable
-function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName) {
+function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, containerId) {
     uniqueValues.forEach(value => {
         const checkboxContainer = document.createElement('label');
         checkboxContainer.classList.add('dropdown-item');
@@ -313,7 +313,7 @@ function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName) 
             } else {
                 globalActiveFilters[column].delete(String(value));
             }
-            fetchFilteredData(tableName);
+            fetchFilteredData(tableName, containerId);
         });
 
         checkboxContainer.appendChild(checkbox);
@@ -325,7 +325,7 @@ function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName) 
 
 
 
-async function fetchFilteredData(tableName) {
+async function fetchFilteredData(tableName, containerId) {
     if (!tableName) {
         console.error("El nombre de la tabla es requerido.");
         return;
@@ -352,7 +352,7 @@ async function fetchFilteredData(tableName) {
         }
 
         const filteredData = await response.json();
-        renderEditableTable(filteredData, 'editable-container-tab2')
+        renderEditableTable(filteredData, containerId)
         
 
 
@@ -523,7 +523,7 @@ function createTableHeader(columns, containerId, globalActiveFilters, tableName)
         );
 
         // Crear filtro para cada columna
-        createFilterSelect(column, tableName).then(({ container, activeFilters }) => {
+        createFilterSelect(column, tableName, containerId).then(({ container, activeFilters }) => {
             globalActiveFilters[column] = activeFilters; // Guardar referencia a filtros activos
             th.appendChild(container);  // Añadir el contenedor del filtro al encabezado de la columna
         });
