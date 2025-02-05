@@ -176,7 +176,6 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
         const data = await response.json();
         if (render) {
             renderEditableTable(data, containerId);
-
             return data;
         }
         return data;
@@ -354,6 +353,8 @@ async function fetchFilteredData(tableName) {
 
         const filteredData = await response.json();
         renderEditableTable(filteredData, 'editable-container-tab2')
+        
+
 
     } catch (error) {
         console.error("Error obteniendo datos filtrados:", error);
@@ -361,85 +362,61 @@ async function fetchFilteredData(tableName) {
 }
 
 
+function updatePagination(data, tableName, containerId) {
+    const { current_page, total_pages } = data;
 
-let currentPage = 1;  // Página inicial
+    // Usar expresión regular para obtener el número final
+    const match = containerId.match(/tab(\d+)$/);
 
-function updatePagination(data, tableName) {
-    const prevButton = document.getElementById("prevPage");
-    const nextButton = document.getElementById("nextPage");
-    const pageInfo = document.getElementById("pageInfo");
+    const tabNumber = match[1];  // El número estará en la primera captura
 
+    // Acceso a los elementos de paginación
+    const prevButton = document.getElementById(`prevPage${tabNumber}`);
+    const nextButton = document.getElementById(`nextPage${tabNumber}`);
+    const pageInfo = document.getElementById(`pageInfo${tabNumber}`);
+
+    // Verificar que los elementos de paginación existen
     if (!prevButton || !nextButton || !pageInfo) {
-        console.error("Error: No se encontraron los elementos de paginación.");
+        console.error("Error: Elementos de paginación faltantes en el DOM.");
+        if (!prevButton) console.error("No se encontró el botón 'prevPage'.");
+        if (!nextButton) console.error("No se encontró el botón 'nextPage'.");
+        if (!pageInfo) console.error("No se encontró el elemento 'pageInfo'.");
         return;
     }
 
-    const { current_page, total_pages } = data;
-
     // Actualizar información de la página
-    pageInfo.textContent = ` Página ${current_page} de ${total_pages} `;
+    pageInfo.textContent = `Página ${current_page} de ${total_pages}`;
 
-    // Habilitar o deshabilitar botones
+    // Habilitar o deshabilitar los botones según la página actual
     prevButton.disabled = current_page <= 1;
     nextButton.disabled = current_page >= total_pages;
 
-    // Actualizar eventos
-    prevButton.onclick = () => changePage(tableName, -1);
-    nextButton.onclick = () => changePage(tableName, 1);
+    // Solo actualizar eventos si los botones no están deshabilitados
+    if (!prevButton.disabled) {
+        prevButton.onclick = () => changePage(tableName, -1, containerId);
+    }
+
+    if (!nextButton.disabled) {
+        nextButton.onclick = () => changePage(tableName, 1, containerId);
+    }
 }
 
 
-function changePage(tableName, direction) {
+let currentPage = 1;  // Página inicial
+function changePage(tableName, direction, containerId) {
     currentPage += direction;  // Sumar o restar 1 a la página
-    fetchTablePage(tableName, currentPage);
+    fetchTablePage(tableName, currentPage, containerId);
 }
 
 
-
-
-function fetchTablePage(tableName, page) {
+function fetchTablePage(tableName, page, containerId) {
     fetch(`/tables/${tableName}/filtered_data?page=${page}`)
         .then(response => response.json())
         .then(data => {
-
-            renderEditableTable(data, 'editable-container-tab2')
+            renderEditableTable(data, containerId)
+            
         })
         .catch(error => console.error("Error al obtener los datos:", error));
-}
-
-
-
-
-
-
-function rowToJson(rowElement, columns) {
-    const cells = rowElement.querySelectorAll('td'); // Selecciona todas las celdas <td>
-    
-    // Crea un objeto JSON asociando cada clave con el valor correspondiente en las celdas
-    const rowJson = {};
-
-    columns.forEach((key, index) => {
-        const cell = cells[index + 1]; // Empieza desde la segunda celda
-
-        if (!cell) return;
-
-        // Verifica si la celda contiene un <select> o <input>
-        const select = cell.querySelector('select');
-        const input = cell.querySelector('input');
-        
-        if (select) {
-            // Si es un <select>, obtén el valor seleccionado
-            rowJson[key] = select.value;
-        } else if (input) {
-            // Si es un <input>, obtén el valor del input
-            rowJson[key] = input.value;
-        } else {
-            // Si no, obtén el texto contenido en la celda
-            rowJson[key] = cell.textContent.trim();
-        }
-    });
-
-    return rowJson;
 }
 
 
@@ -491,21 +468,14 @@ async function deleteRow(jsonData, table_name) {
 
 
 
-
-
-
-
-
-
-
-
-
 function renderEditableTable(response, containerId) {
+
     const {table_name, columns, data } = response;
     const container = document.getElementById(containerId);
-
     // Limpiar la tabla existente
     container.innerHTML = '';
+
+    updatePagination(response, table_name, containerId);
 
     // Crear y configurar la tabla
     const table = createTableElement('editable-table');
@@ -513,13 +483,14 @@ function renderEditableTable(response, containerId) {
     // Contenedor para los filtros activos globales
     const globalActiveFilters = {};
 
+
     // Crear encabezados con filtros
     const thead = createTableHeader(columns, containerId, globalActiveFilters, table_name);
 
     // Crear cuerpo de la tabla
     const tbody = createTableBody(columns, data, containerId, globalActiveFilters, table, table_name);
 
-    updatePagination(response, table_name); 
+    
 
     // Ensamblar la tabla
     table.appendChild(thead);
@@ -594,11 +565,6 @@ function createTableBody(columns, data, containerId, globalActiveFilters, table,
             tr.appendChild(td);
         });
     });
-
-    // Actualizar tabla al aplicar filtros
-    //table.addEventListener('filters-updated', () => {
-    //    updateTableRows(tbody, data, globalActiveFilters, columns);
-    //});
 
     return tbody;
 }
@@ -704,60 +670,12 @@ function createButtonCell(rowElement, tbody, data, columns, table_name) {
 }
 
 
-
-
-
-    
-
-
-
-
-
-
 function createTextCell(content) {
     const td = document.createElement('td');
     td.textContent = content !== null && content !== undefined ? content : '0';
     return td;
 }
 
-
-function updateTableRows(tbody, data, globalActiveFilters, columns) {
-    // Filtrar datos según los filtros activos
-    const filteredData = data.filter(row => {
-        return columns.every(column => {
-            const activeFilters = globalActiveFilters[column];
-            return !activeFilters || activeFilters.size === 0 || activeFilters.has(row[column]);
-        });
-    });
-
-    // Limpiar cuerpo de la tabla
-    tbody.innerHTML = '';
-
-    // Rellenar con datos filtrados
-    filteredData.forEach(row => {
-        const tr = tbody.insertRow();
-        columns.forEach(column => {
-            const td = createTextCell(row[column]);
-            tr.appendChild(td);
-        });
-    });
-}
-
-
-// Función para actualizar el JSON de la tabla
-async function updateTableJson(table_name, data) {
-    // Obtener el formato de JSON usando loadTableData
-    const originalData = await loadTableData('editable-container-tab2', 'Tab2', table_name, false);
-    if (!originalData) {
-        console.error('Error al obtener el formato de JSON');
-        return;
-    }
-
-     // Reemplazar originalData.data con data
-    originalData.data = data;
-    saveData(originalData)
- 
-}
 
 
 async function saveData(data) {
@@ -783,6 +701,25 @@ async function saveData(data) {
         throw error; // Lanzar el error para que sea manejado en el nivel superior
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function populateUniqueSelect(json, property, selectId) {

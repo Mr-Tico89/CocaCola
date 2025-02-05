@@ -10,6 +10,25 @@ FROM information_schema.tables
 WHERE table_schema = 'datos_maquinaria';
 
 
+
+CREATE OR REPLACE FUNCTION tabla_nombres()
+RETURNS event_trigger AS $$
+BEGIN
+    INSERT INTO tabla_nombres (table_name)
+    SELECT objid::regclass::text FROM pg_event_trigger_ddl_commands();
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE EVENT TRIGGER trigger_registro_tabla
+ON ddl_command_end
+WHEN TAG IN ('CREATE TABLE')
+EXECUTE FUNCTION tabla_nombres();
+
+
+
+
 SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'datos_maquinaria';
 
@@ -157,7 +176,7 @@ DROP TRIGGER IF EXISTS
 --copiar datos ya tratados
 \COPY DB_AVERIAS_CONSOLIDADO FROM 'C:\Users\matias\Desktop\CocaCola\tablas muestras\db_averias_consolidado.csv' with DELIMITER ',' CSV HEADER ENCODING 'UTF8';
 
-\COPY HPR_OEE FROM 'C:\Users\matias\Desktop\CocaCola\tablas muestras\PLANTILLA INDICADORES MTTO.csv' with DELIMITER ',' CSV ENCODING 'UTF8';
+\COPY HPR_OEE FROM 'C:\Users\matias\Desktop\CocaCola\tablas muestras\hpr_oee.csv' with DELIMITER ',' CSV ENCODING 'UTF8';
 
 
 --ver index 
