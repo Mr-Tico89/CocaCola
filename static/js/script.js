@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
         select.addEventListener('change', (event) => {
             const selectId = event.target.id.replace('filter-', ''); // ID del select
             const value = Array.from(event.target.selectedOptions).map(option => option.value); // Valores seleccionados
+            console.log (value)
             updateSelectedFilters(selectId, value);
         });
     });
@@ -16,7 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.tablinks').forEach(button => {
         button.addEventListener('click', (event) => {
             const tabId = event.target.getAttribute('onclick').match(/'(.*?)'/)[1]; // Extrae el ID de la pestaña
-
+            clearGlobalActiveFilters(globalActiveFilters)
+            clearGlobalActiveFilters(selectedFilters)
             // Definir las acciones para cada pestaña
             switch (tabId) {
                 case 'Tab2':
@@ -24,17 +26,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     break;
 
                 case 'Tab3':
+                    loadTableData('editable-container-tab3', 'Tab3', 'hpr_oee', true);
                     break;
 
                 case 'Tab4':
                     loadTableData('Indicador-container', 'Tab4', 'INDICADOR_SEMANAL', true);
-                    loadTableData('Indicador-container', 'Tab4', 'db_averias_consolidado', false)
-                        .then(data => loadAndPopulateFilters(data))
-                        .catch(error => console.error('Error al cargar los datos:', error));
-                    break;
-
-                case 'Tab6':
-                    loadTableData('editable-container-tab6', 'Tab6', 'hpr_oee', true);
+                    loadAndPopulateFilters()
                     break;
             }
         });
@@ -49,23 +46,20 @@ document.addEventListener('DOMContentLoaded', function () {
     
             // Ejecutar los filtros y cálculos
             const data = await applyFiltersAndCalculate();
-    
             // Guardar los datos procesados
             await saveData(data);
 
             // Llamada a la función
             // Verificar si selectedFilters.año y selectedFilters.semana tienen longitud 1
             if (selectedFilters.año.length === 1 && selectedFilters.semana.length === 1 && selectedFilters.areas.length >= 2 ) {
-                const result = splitJsonByTotalGeneral(data, selectedFilters.areas.includes("Paros Menores"));
-                result.forEach(item => {
-                    saveData(item); // Llama a saveData con cada valor de result
-                });
-
-                
+                const result = CreateJsonInd(data, selectedFilters.areas.includes("Paros Menores"));
+                await saveData(result);
             }
+
             // Cargar la tabla actualizada
             await loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
             console.log('Tabla actualizada correctamente.');
+
         } catch (error) {
             console.error('Error durante el proceso:', error);
     
@@ -100,6 +94,10 @@ const globalActiveFilters  = {};
 const selectedFilters = {};
 
 
+// funcion para limpiar filtros, se usa cada vez que cambia de pestaña
+function clearGlobalActiveFilters(filters) {
+    Object.keys(filters).forEach(key => delete filters[key]);
+}
 
 
 // Muestra el botón cuando se baja más de 200px
@@ -112,6 +110,7 @@ window.onscroll = function() {
     }
 };
   
+
 // Función para subir al inicio
 function scrollToTop() {
     document.body.scrollTop = 0;
@@ -239,6 +238,7 @@ function createDropdownFilter(column, tableName, containerId) {
 }
 
 
+// funcion para crear los valores unicos, para los filtros de columnas 
 async function fetchUniqueValues(column, tableName) {
     const filters = {};
 
@@ -268,7 +268,7 @@ async function fetchUniqueValues(column, tableName) {
 }
 
 
-// Función madre para crear filtros dinámicos
+// Función madre para crear el boton de filtros y menu desplegable
 async function createFilterSelect(column, tableName, containerId) {
     // Crear el contenedor para el filtro
     const { container, dropdownMenu } = createDropdownFilter(column, tableName, containerId);
@@ -283,7 +283,7 @@ async function createFilterSelect(column, tableName, containerId) {
 }
 
 
-// Función auxiliar para agregar los checkboxes al menú desplegable
+// Función auxiliar para agregar los checkboxes al menú desplegable, cada vez que se activa uno activa fetchUniqueValues
 function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, containerId) {
     uniqueValues.forEach(value => {
         const checkboxContainer = document.createElement('label');
@@ -323,8 +323,7 @@ function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, 
 }
 
 
-
-
+//funcion para actualizar la tabla con los valores unicos (filtros dinamicos), implementarlos a ind_sem WIP
 async function fetchFilteredData(tableName, containerId) {
     if (!tableName) {
         console.error("El nombre de la tabla es requerido.");
@@ -352,22 +351,21 @@ async function fetchFilteredData(tableName, containerId) {
         }
 
         const filteredData = await response.json();
+        //quizas hacer un if para implementarlo en ind_sem no se
         renderEditableTable(filteredData, containerId)
         
-
-
     } catch (error) {
         console.error("Error obteniendo datos filtrados:", error);
     }
 }
 
 
+//para actualizar la paginacion
 function updatePagination(data, tableName, containerId) {
     const { current_page, total_pages } = data;
 
     // Usar expresión regular para obtener el número final
     const match = containerId.match(/tab(\d+)$/);
-
     const tabNumber = match[1];  // El número estará en la primera captura
 
     // Acceso a los elementos de paginación
@@ -403,12 +401,17 @@ function updatePagination(data, tableName, containerId) {
 
 
 let currentPage = 1;  // Página inicial
+
+
+
+//funcion auxiliar para cambiar pagina
 function changePage(tableName, direction, containerId) {
     currentPage += direction;  // Sumar o restar 1 a la página
     fetchTablePage(tableName, currentPage, containerId);
 }
 
 
+//funcion auxiliar para generar nueva pagina
 function fetchTablePage(tableName, page, containerId) {
     fetch(`/tables/${tableName}/filtered_data?page=${page}`)
         .then(response => response.json())
@@ -420,19 +423,20 @@ function fetchTablePage(tableName, page, containerId) {
 }
 
 
-
-
-
-
-async function updateRow(rowData) {
+//para modificar filas de la tabla en la base de datos
+async function updateRow(table_name, rowData, newData) {
     try {
         const response = await fetch('/update_row', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(rowData)
+            body: JSON.stringify({ table_name, row_data: rowData, newData }),
         });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
 
         const result = await response.json();
         console.log(result.message || result.error);
@@ -442,8 +446,7 @@ async function updateRow(rowData) {
 }
 
 
-
-
+//para eliminar filas de la tabla en la base de datos
 async function deleteRow(jsonData, table_name) {
     try {
         const response = await fetch('/delete_row', {
@@ -466,19 +469,24 @@ async function deleteRow(jsonData, table_name) {
 }
 
 
-
-
+//renderizar tabla
 function renderEditableTable(response, containerId) {
-
     const {table_name, columns, data } = response;
     const container = document.getElementById(containerId);
     // Limpiar la tabla existente
-    container.innerHTML = '';
-
-    updatePagination(response, table_name, containerId);
-
+    if (!container) {
+        console.error(`Error: El contenedor con id '${containerId}' no existe en el DOM.`);
+        return;
+    }
+     
+    container.innerHTML = ''
+    if (containerId !== 'Indicador-container') {
+        updatePagination(response, table_name, containerId);
+    }
+    
     // Crear y configurar la tabla
     const table = createTableElement('editable-table');
+
 
     // Contenedor para los filtros activos globales
     const globalActiveFilters = {};
@@ -487,10 +495,10 @@ function renderEditableTable(response, containerId) {
     // Crear encabezados con filtros
     const thead = createTableHeader(columns, containerId, globalActiveFilters, table_name);
 
-    // Crear cuerpo de la tabla
-    const tbody = createTableBody(columns, data, containerId, globalActiveFilters, table, table_name);
 
-    
+    // Crear cuerpo de la tabla
+    const tbody = createTableBody(columns, data, containerId, table_name);
+
 
     // Ensamblar la tabla
     table.appendChild(thead);
@@ -506,15 +514,18 @@ function createTableElement(className) {
 }
 
 
+//crear el encabezado de la tabla
 function createTableHeader(columns, containerId, globalActiveFilters, tableName) {
     const thead = document.createElement('thead');
     thead.classList.add('editable-table-header');
     const headerRow = thead.insertRow();
 
     const buttonHeader = createHeaderCell('Quitar');
-    if (!containerId.includes('editable-container'))  { // ocultar la columna quitar para que filten bien los datos
+    if (!containerId.includes('editable-container'))  { 
+        // ocultar la columna quitar para que filten bien los datos en la tab ver tablas
         buttonHeader.classList.add('hidden-column');
     }
+
     headerRow.appendChild(buttonHeader);
 
     columns.forEach(column => {
@@ -535,6 +546,7 @@ function createTableHeader(columns, containerId, globalActiveFilters, tableName)
 }
 
 
+//celdas para el encabezado
 function createHeaderCell(textContent, additionalClass = '') {
     const th = document.createElement('th');
     th.textContent = textContent;
@@ -544,15 +556,15 @@ function createHeaderCell(textContent, additionalClass = '') {
     return th;
 }
 
-
-function createTableBody(columns, data, containerId, globalActiveFilters, table, table_name) {
+//crear el cuerpo de la tabla
+function createTableBody(columns, data, containerId, table_name) {
     const tbody = document.createElement('tbody');
     tbody.classList.add('editable-table-body');
 
     data.forEach((row, rowIndex) => {
         const tr = tbody.insertRow();
 
-        const buttonCell = createButtonCell(tr, tbody, data, columns, table_name);
+        const buttonCell = createButtonCell(tr, tbody, data, table_name);
         if (!containerId.includes('editable-container')) { // ocultar la columna quitar para que filten bien los datos
             buttonCell.classList.add('hidden-column');
         }
@@ -569,9 +581,10 @@ function createTableBody(columns, data, containerId, globalActiveFilters, table,
     return tbody;
 }
 
-let counter = 1;  // Contador para IDs únicos
 
+//crear celdas editables
 function createEditableCell(row, column, data, rowIndex, table_name) {
+    let counter = 1;  // Contador para IDs únicos
     const td = document.createElement('td');
     td.id = `bodyCell${counter}`;
     const cellValue = row[column] !== null && row[column] !== undefined ? row[column] : '';
@@ -595,16 +608,19 @@ function createEditableCell(row, column, data, rowIndex, table_name) {
             select.appendChild(option);
         });
 
-
         // Agregar evento de cambio para actualizar el valor en los datos
         select.addEventListener('change', (e) => {
             data[rowIndex][column] = e.target.value;
-            console.log(data[rowIndex])
-            //updateTableJson(table_name, data)
+            let new_data = {
+                [column]: data[rowIndex][column]
+            }
+            
+            updateRow(table_name, data[rowIndex], new_data)
         });
 
         td.appendChild(select);
     } 
+
     // Manejar columnas 'sintoma', 'observaciones', o 'OEE' con <input>
     else if (['sintoma', 'observaciones', 'oee'].includes(column)) {
         const input = document.createElement('input');
@@ -623,22 +639,28 @@ function createEditableCell(row, column, data, rowIndex, table_name) {
         // Actualizar los datos al perder el foco
         input.addEventListener('blur', () => {
             data[rowIndex][column] = input.value;
-            //updateTableJson(table_name, data)
+            let new_datas = {
+                [column]: data[rowIndex][column]
+            }
+            updateRow(table_name, data[rowIndex], new_datas)
         });
 
         td.appendChild(input);
     } 
+
     // Manejar celdas normales sin edición
     else {
         td.textContent = cellValue;
     }
-    counter++;
+
+    counter++; //para crear id's de celdas
 
     return td;
 }
 
 
-function createButtonCell(rowElement, tbody, data, columns, table_name) {
+//crear el boton de la columna quitar
+function createButtonCell(rowElement, tbody, data, table_name) {
     const buttonCell = document.createElement('td');
     const button = document.createElement('button');
     button.classList.add('delete-button');
@@ -677,7 +699,7 @@ function createTextCell(content) {
 }
 
 
-
+//para guardar la tabla en indicardor semanal historico
 async function saveData(data) {
     try {
         const response = await fetch('/save', {
@@ -702,69 +724,52 @@ async function saveData(data) {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function populateUniqueSelect(json, property, selectId) {
+// para llenar los filtros de ind semanal 
+function populateUniqueSelect(selectId) {
     const select = document.getElementById(selectId);
-
     // Verificar si el select existe
     if (!select) {
         console.error(`No se encontró el elemento con ID: ${selectId}`);
         return;
     }
 
-    // Verificar que json.data exista y sea un array
-    if (!json || !json.data || !Array.isArray(json.data)) {
-        console.error("La estructura del JSON no es válida o no contiene 'data'. Verifica la entrada:", json);
-        return;
-    }
+    let cleanedselectId = selectId.slice(7); //elimina filter- de selectId en el html
 
-    // Verificar que la propiedad esté en los objetos de "data"
-    if (!json.data[0].hasOwnProperty(property)) {
-        console.error(`La propiedad '${property}' no existe en los objetos de 'data'.`);
-        return;
-    }
+    // Extraer valores únicos de la tabla para este caso sirve que solo se fije en db_averias_consolidado
+    fetchUniqueValues(cleanedselectId, "db_averias_consolidado")
+    .then((uniqueValues) => {
+        // Limpiar las opciones previas antes de agregar nuevas
+        select.innerHTML = '';
 
-    // Extraer valores únicos de la propiedad
-    const uniqueValues = [...new Set(json.data.map(item => item[property]))];
-    
-    // Limpiar las opciones previas antes de agregar nuevas
-    select.innerHTML = '';
+        // Agregar el atributo multiple si no existe
+        select.setAttribute('multiple', 'true');
 
-    // Agregar el atributo multiple si no existe
-    select.setAttribute('multiple', 'true');
-
-    // Agregar las nuevas opciones al select
-    uniqueValues.forEach(value => {
-        //if (value !== '') { // Verificar que el valor no sea ''
+        // Agregar las nuevas opciones al select
+        uniqueValues.forEach(value => {
             const option = document.createElement('option');
             option.value = value;
             option.textContent = value;
             select.appendChild(option);
-        //}
+        });
+
+        select.addEventListener('change', () => {
+            // Obtener los valores seleccionados
+            //const selectedValues = Array.from(select.selectedOptions).map(option => option.value);
+            //console.log(selectedValues);  // Muestra el array con los valores seleccionados
+
+            // funcion para aplicar filtro y cambiar valores unicos de las otros selects WIP
+            //FilteredDataIndSem(tableName, containerId);
+        });
+      })
+
+      .catch((error) => {
+        // Manejar errores en caso de que algo falle
+        console.error("Error al obtener los valores únicos:", error);
     });
 }
 
 
-// Función para actualizar los filtros seleccionados
+// Función para actualizar los filtros seleccionados en indicador semanal
 function updateSelectedFilters(selectId, value) {
     if (value.length > 0) {
         selectedFilters[selectId] = value; // Actualiza el valor seleccionado
@@ -773,28 +778,43 @@ function updateSelectedFilters(selectId, value) {
     }
 }
 
-
-async function loadAndPopulateFilters(data) {
+//func main para rellenar los 4 fitros 
+async function loadAndPopulateFilters() {
     // Llenar los filtros con los datos obtenidos
-    populateUniqueSelect(data, 'año', 'filter-año'); // Filtro Año
-    populateUniqueSelect(data, 'mes', 'filter-mes'); // Filtro Mes
-    populateUniqueSelect(data, 'semana', 'filter-semana'); // Filtro Semana
-    populateUniqueSelect(data, 'areas', 'filter-areas'); // Filtro Semana
+    populateUniqueSelect('filter-año'); // Filtro Año
+    populateUniqueSelect('filter-mes'); // Filtro Mes
+    populateUniqueSelect('filter-semana'); // Filtro Semana
+    populateUniqueSelect('filter-areas'); // Filtro Semana
 }
 
 
+//funcion para cargar todos los datos del backtend al front, no usar para renderizar la tabla (LAG!!)
+async function loadFullTableData(tableName = null) {
+    const table = tableName || document.getElementById('table-select').value;
+    if (!table) return;
+
+    try {
+        const response = await fetch(`/tables/${table}/data`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error(`Error fetching data for table ${table}:`, error);
+    }
+}
+
+//funcion para rellenar la tabla ind semanal realizando todos los calculos y recopilacion de datos en la tabla
 function applyFiltersAndCalculate() {
     return Promise.all([
-        loadTableData('Indicador-container', 'Tab4', 'db_averias_consolidado', false),
-        loadTableData('Indicador-container', 'Tab4', 'hpr_oee', false),
-        loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', false)
+        loadFullTableData('db_averias_consolidado'),
+        loadFullTableData('hpr_oee'),
+        loadFullTableData('indicador_semanal')
     ])
     .then(([averiasData, oeeData, indData]) => {
         if (!averiasData || !averiasData.data || !oeeData || !oeeData.data) {
             throw new Error("Los datos de las tablas no son válidos.");
         }
 
-        // Filtrar los datos según los filtros seleccionados
+        // Filtrar los datos según los filtros seleccionados db_averias_consolidado
         const filteredAverias = averiasData.data.filter(row => {
             return Object.entries(selectedFilters).every(([key, values]) => {
                 const rowValue = String(row[key] || ""); // Asegurarse de que el valor sea una cadena
@@ -802,6 +822,7 @@ function applyFiltersAndCalculate() {
             });
         });
 
+        // Filtrar los datos según los filtros seleccionados OEE
         const filteredOEE = oeeData.data.filter(row => {
             return Object.entries(selectedFilters).every(([key, values]) => {
                 // Ignorar el filtro de "area" para esta tabla
@@ -817,23 +838,25 @@ function applyFiltersAndCalculate() {
             countMin: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }
         };
 
+
         let minutosOEE = { 
             minutos: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
             countMin: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
             oee: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }
         };
 
+        //aqui van los calculos de los datos
         let metrics = { 
             mttr: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
             mtbf: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
             disp: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }
         };
+
         // Calcular minutos para ambas tablas usando la función auxiliar con los campos específicos
         minutosAverias = calculateTotalMinutesById(filteredAverias, minutosAverias, 'id', 'minutos');
         minutosOEE = calculateTotalMinutesById(filteredOEE, minutosOEE, 'linea', 'min');
         metrics = calculateMetrics(minutosAverias, minutosOEE, metrics);
         const avg = calculateOEEAverage(filteredOEE)
-
         updateIndData(indData, minutosAverias, minutosOEE, metrics, avg);
 
         // Devolver los datos procesados
@@ -913,7 +936,7 @@ function calculateMetrics(minutosAverias, minutosOEE, metrics) {
 }
 
 
-
+//calcula el OEE promedio simple de cada linea
 function calculateOEEAverage(data) {
     const oeeTotals = { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }; // Suma total de OEE por ID
     const counts = { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 }; // Cantidad de registros por ID
@@ -955,6 +978,7 @@ function calculateOEEAverage(data) {
 }
 
 
+// actualiza la tabla indicador semanal con los valores calculados
 function updateIndData(indData, minutosAverias, minutosOEE, metrics, avg) {
     indData.data.forEach(row => {
         const id = row.total_general; // Suponiendo que cada fila tiene un campo 'total_general' que coincide con los IDs de minutosAverias y minutosOEE
@@ -997,6 +1021,7 @@ function updateIndData(indData, minutosAverias, minutosOEE, metrics, avg) {
 }
 
 
+//descargas el archivo powerBI de google drive
 function cargarPowerBI() {
     fetch('/cargar-powerbi', {
         method: 'POST',
@@ -1023,26 +1048,68 @@ function cargarPowerBI() {
 }
 
 
-function splitJsonByTotalGeneral(jsonData, boolean) {
-    const newColumns = ["año", "semana", "hpr", "disp", "meta", "mtbf", "mttr", "averias", "minutos", "oee", "parosmenores"];
+//crea el json para guardarlo en ind_semanal_historico
+function CreateJsonInd(jsonData, boolean) {
+    const newColumns = ["id", "año", "semana", "disp", "meta", "mtbf", "mttr", "averias", "minutos", "oee", "parosmenores"];
     const ParosMenores = boolean
     const año = selectedFilters.año[0]; // Obtener el año desde selectedFilters
     const semana = selectedFilters.semana[0]; // Obtener la semana desde selectedFilters
-    
-    return jsonData.data
-    .filter(item => item.total_general !== "PLANTA") // Filtrar elementos que no son "PLANTA"
-    .map(item => ({
+    const resultado = {
         columns: newColumns,
-        data: [
-            {
-                ...item,
-                año: año,  // Usar solo el primer valor de año
-                semana: semana,  // Usar solo el primer valor de semana
-                parosmenores: ParosMenores,
-                disp: parseFloat(item.disp.replace('%', '')) / 100 || 0,  // Eliminar '%' y convertir a float
-                oee: parseFloat(item.oee.replace('%', '')) / 100 || 0    // Eliminar '%' y convertir a float
-            }
-        ],
-        table_name: `indicador_semanal_historico_${item.total_general}`
-    }));
+        data: jsonData.data
+            .filter(item => item.total_general !== "PLANTA") // Filtrar "PLANTA"
+            .map(item => ({
+                id: item.total_general, // Renombrar total_general a id
+                año: año,
+                semana: semana,
+                disp: parseFloat(item.disp.replace('%', '')) / 100 || 0, // Convertir porcentaje a decimal
+                mtbf: parseFloat(item.mtbf) || 0,
+                mttr: parseFloat(item.mttr) || 0,
+                averias: parseInt(item.averias) || 0,
+                minutos: parseInt(item.minutos) || 0,
+                oee: parseFloat(item.oee.replace('%', '')) / 100 || 0,
+                parosmenores: ParosMenores,  
+            })),
+        table_name: "indicador_semanal_historico"
+    };
+    return resultado
+}
+
+
+//funcion para mostrar los botones de descarga y cambiar pagina en la tab 'ver tablas'
+function showDownloadButton() {
+    document.getElementById("download-btn").style.display = "block";
+    document.getElementById("pagination").style.display = "flex"; // Mostrar paginación
+}
+
+
+// para descargar tablas completas
+function downloadTable() {
+    let tableName = document.getElementById("table-select").value;
+
+    fetch('/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_name: tableName })
+    })
+
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || "Error desconocido"); });
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        let url = window.URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = tableName + ".xlsx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Error al descargar la tabla: " + error.message);
+    });
 }

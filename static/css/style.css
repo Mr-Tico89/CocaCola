@@ -52,6 +52,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: center;
     padding: 20px;
     border: 1px solid #ccc;
     border-radius: 10px;
@@ -78,6 +79,7 @@
 
 .extra-button {
     margin-left: 10px;
+    margin-right: 10px;
     padding: 10px 20px;
     background-color: #fe001a; /* Rojo cocacola por defecto */
     color: white;
@@ -89,6 +91,16 @@
 .extra-button:hover {
     background-color: #c70000;
 }
+
+.extra-button:disabled {
+    background-color: #e7c5c5;  /* Gris para indicar deshabilitado */
+    color: #666;  /* Texto más oscuro */
+    cursor: not-allowed;  /* Cursor indicando que no es interactivo */
+    opacity: 0.6;  /* Hace que se vea más apagado */
+    border: 1px solid #aaa; /* Borde más tenue */
+}
+
+
 
 /* General table styling */
 .editable-table {
@@ -105,6 +117,7 @@
 
 /* Estilo para los encabezados */
 .editable-table-header th {
+    overflow: hidden;
     background-color: #d6d6d6;
     font-size: 18px;
     color: rgb(63, 63, 63);
@@ -115,6 +128,7 @@
 
 /* Estilo para el cuerpo de la tabla */
 .editable-table-body td {
+    overflow: hidden;
     padding: 6px;
     border: 1px solid #ddd;
     vertical-align: middle;
@@ -313,11 +327,10 @@
     font-size: 16px; /* Tamaño de fuente */
     font-weight: bold; /* Negrita */
     color: #333; /* Color del texto */
-    margin-right: 10px; /* Espacio a la derecha */
     padding: 5px 10px; /* Espaciado interno */
     background-color: #f0f0f0; /* Color de fondo */
     border-radius: 5px; /* Bordes redondeados */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra */
-    display: inline-block; /* Asegura que el label se comporte como un bloque en línea */
+     /* Asegura que el label se comporte como un bloque en línea */
 }
 

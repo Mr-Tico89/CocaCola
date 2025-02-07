@@ -1,11 +1,12 @@
 import requests
 from flask import Flask, request, jsonify, render_template, send_file
 from flask_cors import CORS
-from datetime import datetime
 import tempfile
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+import pandas as pd
+from io import BytesIO
 
 
 app = Flask(__name__, static_folder='static')
@@ -31,7 +32,7 @@ config = {
     "password": "cocacola9041",
     "host": "localhost",  # Cambia si es un servidor remoto
     "port": 5432,         # Puerto de PostgreSQL
-    "options":"-c client_encoding=UTF8"        
+    "options":"-c client_encoding=WIN1252"        
 }
 
 #para realizar consultas a la base 
@@ -148,7 +149,7 @@ def get_unique_values(table_name):
 
 
 
-#codigo para obtener los datos de las tablas 
+#codigo para obtener los datos de las tablas paginada
 @app.route('/tables/<table_name>/filtered_data', methods=['GET'])
 def get_filtered_data(table_name):
     try:
@@ -217,6 +218,36 @@ def get_filtered_data(table_name):
 
 
 
+#codigo para obtener todos los datos de las tablas sin paginar
+@app.route('/tables/<table_name>/data', methods=['GET'])
+def get_table_data(table_name):
+    try:
+        # Obtener nombres de columnas para evitar SQL Injection
+        query_columns = """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'datos_maquinaria' AND table_name = %s
+        ORDER BY ordinal_position;
+        """
+        columns = query_db(query_columns, (table_name,))
+        column_names = [col["column_name"] for col in columns]
+
+        # Obtener todos los datos sin paginación
+        query = f"SELECT row_to_json(t) FROM (SELECT * FROM {table_name} ) t"
+        data = query_db(query)
+
+        # Extraer los diccionarios JSON de las tuplas
+        formatted_data = [row["row_to_json"] for row in data]
+
+        return jsonify({
+            "table_name": table_name,
+            "columns": column_names,
+            "data": formatted_data,
+        })
+
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 
@@ -224,57 +255,60 @@ def get_filtered_data(table_name):
 @app.route('/update_row', methods=['POST'])
 def update_row():
     try:
-        # Recibir el JSON desde el frontend
-        data = request.json
         
-        # Verificar que los datos esenciales estén presentes
-        if not all(key in data for key in ["id", "fecha", "turno"]):
-            return jsonify({"error": "Faltan datos clave (id, fecha, turno)."}), 400
+        data = request.json
+        table_name = data.get("table_name")
+        row_data = data.get("row_data")  # Identificación de la fila
+        new_data = data.get("newData")  # Contiene { columna: nuevo_valor }
 
-        # Construir la consulta de actualización
-        update_query = f"""
-        UPDATE db_averias_consolidado
-        SET
-            mes = %s,
-            semana = %s,
-            año = %s,
-            turno = %s, 
-            sintoma = %s,
-            areas = %s,
-            observaciones = %s
-        WHERE
-            id = %s AND
-            fecha = %s AND
-            maquina = %s AND
-            minutos = %s 
-        """
+        if not table_name or not row_data or not new_data:
+            return jsonify({"success": False, "error": "Datos incompletos."}), 400
+        
+        # Extraer la única clave y valor de new_data
+        update_column, new_value = list(new_data.items())[0]   
+        
+        # Columnas a omitir en la comparación
+        omit_columns = {"oee", "observaciones", "areas", "sintoma"}
 
-        # Parámetros para la consulta
-        params = [
-            data["mes"],
-            data["semana"],
-            data["año"],
-            data["turno"],
-            data["sintoma"],
-            data["areas"],
-            data["observaciones"],
-            data["id"],
-            data["fecha"],
-            data["maquina"],
-            data["minutos"]
-        ]
+        # Construcción de la condición WHERE
+        conditions = []
+        params = []
 
-        # Ejecutar la consulta
-        query_db(update_query, params)
+        for column, value in row_data.items():
+            if column in omit_columns:
+                continue  # Omitir las columnas especificadas
 
-        return jsonify({"message": "Fila actualizada con éxito."}), 200
+            conditions.append(f"{column} = %s")
+            params.append(value)
+
+        # Si no hay condiciones válidas, error
+        if not conditions:
+            return jsonify({"success": False, "error": "No hay columnas válidas para identificar la fila."}), 400
+        where_clause = " AND ".join(conditions)
+
+        # Verificar si la fila existe con COUNT()
+        count_query = f"SELECT COUNT(*) FROM {table_name} WHERE {where_clause}"
+        count_result = query_db(count_query, params)
+        row_count = count_result[0]["count"] if count_result else 0
+        print(f"Filas encontradas: {row_count}")
+
+        if row_count == 0:
+            return jsonify({"success": False, "error": "No se encontró ninguna fila para actualizar."}), 404
+
+        # Construir la consulta UPDATE
+        query = f"UPDATE {table_name} SET {update_column} = %s WHERE {where_clause}"
+        update_params = [new_value] + params  # Agregar el valor a actualizar antes de los filtros
+
+        print("SQL Query:", query)
+        print("SQL Params:", update_params)
+
+        # Ejecutar la actualización real
+        cursor = query_db(query, update_params, commit=True)
+        
+        return jsonify({"success": True, "message": "Fila actualizada con éxito."}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-
-
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 
@@ -297,11 +331,6 @@ def delete_row():
                 # Manejar NULL para la columna "observaciones"
                 conditions.append(f"({column} = %s OR {column} IS NULL)")
                 params.append(value if value != "" else None)
-                
-            elif column == "minutos":
-                # Convertir "minutos" a tipo float
-                conditions.append(f"{column} = %s")
-                params.append(float(value))
             
             else:
                 # Condición general para otras columnas
@@ -315,7 +344,9 @@ def delete_row():
         # Ejecutar consulta
         query_db(query, params, commit=True)
         
+
         return jsonify({"success": True, "message": "Fila eliminada con éxito."}), 200
+    
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -426,6 +457,7 @@ def save():
     # Validaciones iniciales
     if not table_name or not columns or not rows:
         return jsonify({'error': 'El JSON debe incluir table_name, columns y data'}), 400
+    
     if not isinstance(columns, list) or not isinstance(rows, list):
         return jsonify({'error': 'Columns debe ser una lista y data debe ser una lista de objetos JSON'}), 400
 
@@ -437,7 +469,7 @@ def save():
         conn = psycopg2.connect(**config)
         cur = conn.cursor()
 
-        if not table_name.startswith("indicador_semanal_historico"):
+        if table_name == "indicador_semanal":
             # TRUNCATE para limpiar la tabla antes de actualizar
             cur.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY")
 
@@ -472,7 +504,7 @@ def save():
 def cargar_powerbi():
     try:
         # URL del archivo en Google Drive
-        file_url = "https://drive.google.com/uc?id=1bmG0gtAx3TXUtpD2sT5errQ_kIhbNaZC&export=download"
+        file_url = "https://drive.google.com/uc?id=1nSSnH0S38mBWiM5EQFVtVfjRBAxwx8Do&export=download"
 
         # Descargar el archivo desde Google Drive
         response = requests.get(file_url, stream=True)
@@ -494,6 +526,41 @@ def cargar_powerbi():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"mensaje": "Ocurrió un error", "error": str(e)}), 500
+
+
+
+@app.route('/download', methods=['POST'])
+def download_table():
+    data = request.json
+    table_name = data.get("table_name")
+
+    if not table_name:
+        return jsonify({"error": "No se especificó la tabla"}), 400
+
+    try:
+     # Obtener los datos de la tabla
+        query = f"SELECT * FROM {table_name};"
+        rows = query_db(query)
+
+        if not rows:
+            return jsonify({"error": "La tabla está vacía o no existe"}), 404
+
+        # Convertir a DataFrame
+        df = pd.DataFrame(rows)
+
+        # Crear archivo en memoria
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df.to_excel(writer, index=False, sheet_name=table_name)
+
+        output.seek(0)  # Regresar al inicio del archivo
+
+        # Enviar archivo como respuesta
+        return send_file(output, download_name=f"{table_name}.xlsx", as_attachment=True, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == "__main__":
