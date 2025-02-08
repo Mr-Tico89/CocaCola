@@ -117,7 +117,6 @@
 
 /* Estilo para los encabezados */
 .editable-table-header th {
-    overflow: hidden;
     background-color: #d6d6d6;
     font-size: 18px;
     color: rgb(63, 63, 63);
@@ -128,7 +127,6 @@
 
 /* Estilo para el cuerpo de la tabla */
 .editable-table-body td {
-    overflow: hidden;
     padding: 6px;
     border: 1px solid #ddd;
     vertical-align: middle;
@@ -169,7 +167,8 @@
     padding: 2px 2px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 14px
+    
 }
 
 .filter-container .dropdown-button:hover {
@@ -183,7 +182,7 @@
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 4px;
-    z-index: 1;
+    z-index: 99;
     margin-top: 5px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 10px;
@@ -194,6 +193,7 @@
 
 .filter-container .dropdown-menu.show {
     display: block;
+    z-index: 99;
 }
 
 /* Estilo para las opciones del menú */
@@ -331,6 +331,5 @@
     background-color: #f0f0f0; /* Color de fondo */
     border-radius: 5px; /* Bordes redondeados */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra */
-     /* Asegura que el label se comporte como un bloque en línea */
 }
 

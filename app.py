@@ -9,12 +9,16 @@ import pandas as pd
 from io import BytesIO
 
 
+
+# Comentario importante en script.js
+
+
+
 app = Flask(__name__, static_folder='static')
 
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Aumenta el límite a 16 MB
 
 CORS(app)  # Permitir solo tu dominio
-
 
 
 # Configuración de la carpeta de subida
@@ -83,7 +87,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-
+#Funcion para abrir el front
 @app.route('/')
 def index():
     return render_template('interface.html')  # Sirve tu archivo HTML desde la carpeta 'templates'
@@ -251,7 +255,7 @@ def get_table_data(table_name):
 
 
 
-
+#codigo para actualizar la fila de la tabla 
 @app.route('/update_row', methods=['POST'])
 def update_row():
     try:
@@ -445,6 +449,7 @@ def upload_file():
         return jsonify({'message': 'Invalid file type, only .csv files are allowed'}), 400
 
 
+# funcion para guardar los datos en ind semanal (tabla dinamica)
 @app.route('/save', methods=['PUT'])
 def save():
     # Obtener el JSON enviado por el cliente
@@ -500,6 +505,7 @@ def save():
         conn.close()
 
 
+#funcion para descargar planilla.pbix del drive 
 @app.route('/cargar-powerbi', methods=['POST'])
 def cargar_powerbi():
     try:
@@ -528,7 +534,7 @@ def cargar_powerbi():
         return jsonify({"mensaje": "Ocurrió un error", "error": str(e)}), 500
 
 
-
+#funcion para descargar los datos de la tabla a un archivo excel
 @app.route('/download', methods=['POST'])
 def download_table():
     data = request.json
@@ -564,4 +570,4 @@ def download_table():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000, debug=False)
+    app.run(host='0.0.0.0', port=8000, debug=True)

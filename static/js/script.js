@@ -1,3 +1,26 @@
+// Autor: Mr.Tico89
+// Fecha: 10-02-2025
+// rev: 1.0
+// Contacto: matinico71@gmail.com, @mati_rojasv (IG)
+// Respositorio: https://github.com/Mr-Tico89/CocaCola.git
+
+// Para el futuro practicante:  
+    //  
+    // Si estás leyendo esto, es probable que te hayan enviado a revisar el código.  
+    // Seré honesto: este es mi primer proyecto de página web, así que seguro está lleno  
+    // de bugs y vulnerabilidades.  
+    //  
+    // Tu misión es continuar con este legado. Si es posible, me encantaría saber cómo 
+    // evoluciona mi "primer hijo" (le tengo cariño, jeje). No dudes en hacer preguntas 
+    // si necesitas ayuda. Mucho éxito en tu camino.  
+    //  
+    // "El universo dijo que tú eres el universo probándose a sí mismo, hablándose a sí mismo, 
+    //  leyendo su propio código. Y el universo dijo Te amo, porque tú eres el amor." 
+    //  -Minecraft  
+    //  
+    // Se despide el primer practicante Ing. civil en computacion de mantenimiento (hasta donde sé).  
+//
+
 
 document.addEventListener('DOMContentLoaded', function () {
     // Llamar a loadTableOptions cuando la página se carga
@@ -183,7 +206,7 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
     }
 }
 
-
+// crea el menu desplegable
 function createDropdownFilter(column, tableName, containerId) {
     // Crear el contenedor principal del filtro
     const container = document.createElement('div');
@@ -244,6 +267,7 @@ async function fetchUniqueValues(column, tableName) {
 
     // Convertir los filtros de globalActiveFilters a un formato adecuado
     Object.keys(globalActiveFilters).forEach(column => {
+
         // Si el Set no está vacío, lo convertimos a array
         if (globalActiveFilters[column].size > 0) {
             filters[column] = Array.from(globalActiveFilters[column]).join(',');
@@ -360,9 +384,11 @@ async function fetchFilteredData(tableName, containerId) {
 }
 
 
-//para actualizar la paginacion
+//para actualizar la paginacion (por una extraña razon a veces se bugea cuando se clickea rapido o cuando hay filtros)
 function updatePagination(data, tableName, containerId) {
+    console.log("currentPAgeData",data.currentPage)
     const { current_page, total_pages } = data;
+
 
     // Usar expresión regular para obtener el número final
     const match = containerId.match(/tab(\d+)$/);
@@ -391,11 +417,11 @@ function updatePagination(data, tableName, containerId) {
 
     // Solo actualizar eventos si los botones no están deshabilitados
     if (!prevButton.disabled) {
-        prevButton.onclick = () => changePage(tableName, -1, containerId);
+        prevButton.onclick = () => changePage(total_pages, tableName, -1, containerId);
     }
 
     if (!nextButton.disabled) {
-        nextButton.onclick = () => changePage(tableName, 1, containerId);
+        nextButton.onclick = () => changePage(total_pages, tableName, 1, containerId);
     }
 }
 
@@ -403,17 +429,36 @@ function updatePagination(data, tableName, containerId) {
 let currentPage = 1;  // Página inicial
 
 
-
 //funcion auxiliar para cambiar pagina
-function changePage(tableName, direction, containerId) {
-    currentPage += direction;  // Sumar o restar 1 a la página
-    fetchTablePage(tableName, currentPage, containerId);
+function changePage(total_pages, tableName, direction, containerId) {
+    let newPage = currentPage + direction; // Calcula la nueva página
+    console.log(total_pages)
+
+    // Limita el rango entre 1 y totalPages
+    if (newPage >= 1 && newPage <= totalPages) {
+        fetchTablePage(tableName, total_pages, containerId);
+    }
+    else {
+        console.error("Error: La página está fuera de rango:", newPage);
+    }
 }
 
 
 //funcion auxiliar para generar nueva pagina
 function fetchTablePage(tableName, page, containerId) {
-    fetch(`/tables/${tableName}/filtered_data?page=${page}`)
+    const filters = {};
+
+    // Construir filtros activos
+    for (const column in globalActiveFilters) {
+        if (globalActiveFilters[column]?.size > 0) {
+            filters[column] = [...globalActiveFilters[column]].join(',');
+        }
+    }
+
+    // Construir URL con parámetros de filtros
+    const queryString = new URLSearchParams(filters).toString();
+
+    fetch(`/tables/${tableName}/filtered_data?page=${page}&${queryString}`)
         .then(response => response.json())
         .then(data => {
             renderEditableTable(data, containerId)
@@ -480,10 +525,7 @@ function renderEditableTable(response, containerId) {
     }
      
     container.innerHTML = ''
-    if (containerId !== 'Indicador-container') {
-        updatePagination(response, table_name, containerId);
-    }
-    
+
     // Crear y configurar la tabla
     const table = createTableElement('editable-table');
 
@@ -499,6 +541,9 @@ function renderEditableTable(response, containerId) {
     // Crear cuerpo de la tabla
     const tbody = createTableBody(columns, data, containerId, table_name);
 
+    if (containerId !== 'Indicador-container') {
+        updatePagination(response, table_name, containerId);
+    }
 
     // Ensamblar la tabla
     table.appendChild(thead);
@@ -555,6 +600,7 @@ function createHeaderCell(textContent, additionalClass = '') {
     }
     return th;
 }
+
 
 //crear el cuerpo de la tabla
 function createTableBody(columns, data, containerId, table_name) {
@@ -724,6 +770,7 @@ async function saveData(data) {
     }
 }
 
+
 // para llenar los filtros de ind semanal 
 function populateUniqueSelect(selectId) {
     const select = document.getElementById(selectId);
@@ -778,6 +825,7 @@ function updateSelectedFilters(selectId, value) {
     }
 }
 
+
 //func main para rellenar los 4 fitros 
 async function loadAndPopulateFilters() {
     // Llenar los filtros con los datos obtenidos
@@ -801,6 +849,7 @@ async function loadFullTableData(tableName = null) {
         console.error(`Error fetching data for table ${table}:`, error);
     }
 }
+
 
 //funcion para rellenar la tabla ind semanal realizando todos los calculos y recopilacion de datos en la tabla
 function applyFiltersAndCalculate() {
