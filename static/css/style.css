@@ -333,3 +333,11 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra */
 }
 
+.styled-Advice {
+    font-size: 16px; /* Tamaño de fuente */
+    color: #333; /* Color del texto */
+    padding: 5px 10px; /* Espaciado interno */
+    background-color: #f0f0f0; /* Color de fondo */
+    border-radius: 5px; /* Bordes redondeados */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra */
+}

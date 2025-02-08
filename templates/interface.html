@@ -18,8 +18,8 @@
         <button class="tablinks" onclick="openTab(event, 'Tab2')">Averías Consolidadas</button>
         <button class="tablinks" onclick="openTab(event, 'Tab3')">HPR OEE</button>
         <button class="tablinks" onclick="openTab(event, 'Tab4')">Indicador Semanal</button>
-        <button class="tablinks" onclick="openTab(event, 'Tab6')">Subir Datos</button>
-        <button class="tablinks" onclick="openTab(event, 'Tab5')">Graficos</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab5')">Subir Datos</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab6')">Graficos</button>
         
     </div>
 
@@ -112,7 +112,12 @@
 
 
     <div id="Tab5" class="tabcontent">
-
+        <div class="select-button-container">
+            <label class="styled-Advice"> 
+                <span style="color: red;"><strong>IMPORTANTE: </strong></span>
+                SOLO se aceptan los datos crudos, idealmente que contengan estos
+                nombres los archivos (DATASHEEETFALLASSEMANALES... y OEEYDISPONIBILIDAD...)</label>
+        </div>
         <div class="select-button-container">
 
             <form id="upload-form" enctype="multipart/form-data">
@@ -139,7 +144,7 @@
     <button id="scrollToTopBtn" onclick="scrollToTop()">Subir</button>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    
+
 </body>
 
 </html>

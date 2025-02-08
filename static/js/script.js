@@ -20,6 +20,22 @@
     //  
     // Se despide el primer practicante Ing. civil en computacion de mantenimiento (hasta donde sé).  
 //
+//     ⠀⠀⠀⠀⢸⠓⢄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+//    ⠀⠀⠀⠀⠀⢸⠀⠀⠑⢤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+//    ⠀⠀⠀⠀⠀⢸⡆⠀⠀⠀⠙⢤⡷⣤⣦⣀⠤⠖⠚⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀
+//    ⣠⡿⠢⢄⡀⠀⡇⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀⠀⠸⠷⣶⠂⠀⠀⠀⣀⣀⠀⠀⠀
+//    ⢸⣃⠀⠀⠉⠳⣷⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠉⠉⠉⢉⡭⠋
+//    ⠀⠘⣆⠀⠀⠀⠁⠀⢀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠋⠀⠀
+//    ⠀⠀⠘⣦⠆⠀⠀⢀⡎⢹⡀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⡀⣠⠔⠋⠀⠀⠀⠀
+//    ⠀⠀⠀⡏⠀⠀⣆⠘⣄⠸⢧⠀⠀⠀⠀⢀⣠⠖⢻⠀⠀⠀⣿⢥⣄⣀⣀⣀⠀⠀
+//    ⠀⠀⢸⠁⠀⠀⡏⢣⣌⠙⠚⠀⠀⠠⣖⡛⠀⣠⠏⠀⠀⠀⠇⠀⠀⠀⠀⢙⣣⠄
+//    ⠀⠀⢸⡀⠀⠀⠳⡞⠈⢻⠶⠤⣄⣀⣈⣉⣉⣡⡔⠀⠀⢀⠀⠀⣀⡤⠖⠚⠀⠀
+//    ⠀⠀⡼⣇⠀⠀⠀⠙⠦⣞⡀⠀⢀⡏⠀⢸⣣⠞⠀⠀⠀⡼⠚⠋⠁⠀⠀⠀⠀⠀
+//    ⠀⢰⡇⠙⠀⠀⠀⠀⠀⠀⠉⠙⠚⠒⠚⠉⠀⠀⠀⠀⡼⠁⠀⠀⠀⠀⠀⠀⠀⠀
+//    ⠀⠀⢧⡀⠀⢠⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀
+//    ⠀⠀⠀⠙⣶⣶⣿⠢⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+//    ⠀⠀⠀⠀⠀⠉⠀⠀⠀⠙⢿⣳⠞⠳⡄⠀⠀⠀⢀⡞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+//    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⠀⠹⣄⣀⡤⠋⠀
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -386,7 +402,6 @@ async function fetchFilteredData(tableName, containerId) {
 
 //para actualizar la paginacion (por una extraña razon a veces se bugea cuando se clickea rapido o cuando hay filtros)
 function updatePagination(data, tableName, containerId) {
-    console.log("currentPAgeData",data.currentPage)
     const { current_page, total_pages } = data;
 
 
@@ -417,11 +432,11 @@ function updatePagination(data, tableName, containerId) {
 
     // Solo actualizar eventos si los botones no están deshabilitados
     if (!prevButton.disabled) {
-        prevButton.onclick = () => changePage(total_pages, tableName, -1, containerId);
+        prevButton.onclick = () => changePage(current_page, total_pages, tableName, -1 , containerId);
     }
 
     if (!nextButton.disabled) {
-        nextButton.onclick = () => changePage(total_pages, tableName, 1, containerId);
+        nextButton.onclick = () => changePage(current_page, total_pages, tableName, 1, containerId);
     }
 }
 
@@ -430,13 +445,13 @@ let currentPage = 1;  // Página inicial
 
 
 //funcion auxiliar para cambiar pagina
-function changePage(total_pages, tableName, direction, containerId) {
-    let newPage = currentPage + direction; // Calcula la nueva página
-    console.log(total_pages)
+function changePage(current_page, total_pages, tableName, direction, containerId) {
+    current_page += direction; // Calcula la nueva página
 
     // Limita el rango entre 1 y totalPages
-    if (newPage >= 1 && newPage <= totalPages) {
-        fetchTablePage(tableName, total_pages, containerId);
+    if (current_page >= 1 && current_page <= total_pages) {
+        console.log(current_page)
+        fetchTablePage(tableName, current_page, containerId);
     }
     else {
         console.error("Error: La página está fuera de rango:", newPage);

@@ -185,11 +185,18 @@ def get_filtered_data(table_name):
         filter_query = " AND ".join(filters) if filters else "1=1"
         print(f"Filtro generado: {filter_query}")
 
-        # Consulta para obtener los datos paginados
-        query = f"""
-        SELECT row_to_json(t)
-        FROM (SELECT * FROM {table_name} WHERE {filter_query} LIMIT %s OFFSET %s) t
-        """
+        # Comprobar si table_name es igual a 'db_averias_consolidado'
+        if table_name in ['db_averias_consolidado', 'hpr_oee']:
+            query = f"""
+            SELECT row_to_json(t)
+            FROM (SELECT * FROM {table_name} WHERE {filter_query} ORDER BY fecha LIMIT %s OFFSET %s) t
+            """
+        else:
+            query = f"""
+            SELECT row_to_json(t)
+            FROM (SELECT * FROM {table_name} WHERE {filter_query} LIMIT %s OFFSET %s) t
+            """
+
         params.extend([per_page, offset])
 
         # Obtener datos de la base de datos
@@ -307,7 +314,7 @@ def update_row():
         print("SQL Params:", update_params)
 
         # Ejecutar la actualización real
-        cursor = query_db(query, update_params, commit=True)
+        query_db(query, update_params, commit=True)
         
         return jsonify({"success": True, "message": "Fila actualizada con éxito."}), 200
 
