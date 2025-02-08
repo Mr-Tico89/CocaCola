@@ -123,6 +123,7 @@
     padding: 8px;
     position: sticky;
     top: 0;
+    z-index: 1;
 }
 
 /* Estilo para el cuerpo de la tabla */
@@ -175,6 +176,12 @@
     background-color: #c70000;
 }
 
+
+.filter-container {
+    position: relative; /* Asegura que el contenedor sea relativo para el posicionamiento del menú */
+}
+
+
 /* Estilo para el menú desplegable */
 .filter-container .dropdown-menu {
     display: none;
@@ -183,13 +190,15 @@
     border: 1px solid #ccc;
     border-radius: 4px;
     z-index: 99;
-    margin-top: 5px;
+    margin-top: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-    max-height: 400px;
+    padding: 1px;
+    max-height: 350px;
     overflow-y: auto;
-
+    left: 50%; /* Posiciona el menú al 50% del ancho del contenedor */
+    transform: translateX(-50%); /* Centra el menú horizontalmente */
 }
+
 
 .filter-container .dropdown-menu.show {
     display: block;
@@ -199,10 +208,20 @@
 /* Estilo para las opciones del menú */
 .filter-container .dropdown-item {
     display: flex;
-    align-items: center;
-    padding: 5px 10px;
+    align-items: left;
+    padding: 4px 10px;
     cursor: pointer;
+    
 }
+
+.filter-container .dropdown-item span {
+    display: inline-block; /* Necesario para usar overflow */
+    max-width: 200px; /* Limita el ancho del texto */
+    overflow: hidden; /* Oculta el texto que excede el límite */
+    text-overflow: ellipsis; /* Agrega puntos suspensivos (...) */
+    white-space: nowrap; /* Impide que el texto pase a otra línea */
+}
+
 
 .filter-container .dropdown-item input[type="checkbox"] {
     margin-right: 6px;

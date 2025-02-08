@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+
     // Agregar eventos a los botones de pestañas
     document.querySelectorAll('.tablinks').forEach(button => {
         button.addEventListener('click', (event) => {
@@ -121,6 +122,8 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => document.getElementById('upload-status').innerText = data.message)
             .catch(error => console.error('Error al subir el archivo:', error));
     });
+
+
 
 });
 
@@ -255,6 +258,25 @@ function createDropdownFilter(column, tableName, containerId) {
     });
 
     dropdownMenu.appendChild(clearButton);
+
+
+    // Manejo dinámico de los menús desplegables
+    dropdownMenu.querySelectorAll('dropdown-menu').forEach(menu => {
+        menu.addEventListener('mouseover', () => {
+            const rect = menu.getBoundingClientRect();
+            // Si el menú se desborda por el lado derecho, ajusta su posición
+            if (rect.right > window.innerWidth) {
+                menu.classList.add('adjust-left'); // Agrega clase para ajustarlo hacia la izquierda
+            } else {
+                menu.classList.remove('adjust-left'); // Quita la clase si ya no se desborda
+            }
+        });
+    });
+
+
+
+
+
 
     // Manejar eventos para mostrar/ocultar el menú
     dropdownButton.addEventListener('click', (event) => {
