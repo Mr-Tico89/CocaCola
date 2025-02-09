@@ -2,9 +2,7 @@
 
 
 ## Resumen
-Este proyecto tiene el objetivo de facilitar el trabajo de limpieza y manipulacion de datos, teniendo la capacidad de almacenar los datos en postgreSQL, e 
-
-Este proyecto tiene como objetivo [propósito del proyecto]. La aplicación permite [funcionalidad principal] y está diseñada para [público objetivo o aplicación].
+Este proyecto tiene el objetivo de facilitar el trabajo para los planificadores en el taller de mantencio de la Coca-Cola Embonor, teniendo la capacidad de almacenar los datos en postgreSQL, modificarlos usando una pagina web y poder graficarlos con un archivo power BI. 
 
 
 ## Requisitos 
@@ -14,8 +12,12 @@ Antes de iniciar el proyecto, asegúrate de tener instalados los siguientes leng
 
 Ademas existe un archivo nombrado requirements.txt, el cual contiene todas las librerias utilizadas, no tiene que instalarlas, el iniciar.bat se encargara de instalarlas si no las tiene. 
 
+> [!WARNING]
+> La Base de datos no viene incluida, consulte para mas detalle
+
 > [!NOTE]
-> La Base de datos no viene incluida
+> El backend y el archivo power BI esta programado teniendo en cuenta que la base de datos esta en el mismo host 
+
 
 ## Instrucciones
 Sigue estos pasos para iniciar el proyecto en tu máquina local:
@@ -24,13 +26,19 @@ Sigue estos pasos para iniciar el proyecto en tu máquina local:
 
 2. Si es la primera vez que lo iniciar, comenzara a descargar las librerias e instalarlas en el entorno virtual.
 
-3. Una vez ya instalado todo comenzara la aplicacion, debiese salir algo como
+> [!NOTE]
+> Puede tardar un par de minutos
+
+
+3. Una vez ya instalado todo comenzara la aplicacion, debiese salir algo del estilo
+
     ```bash
     Running on http://XXX.XXX.XXXX:8000
     ```
-4. debe copiar ese link con `Ctrl + Shift + C`, luego peguelo en el su navegador preferido. Asi podra usar la aplicacion si gusta puede guardar un acceso directo.
 
-5. Para cerrar la aplicacion puede salir de la terminal o puede apretar `Ctrl + c` para luego confirmar si quiere cerrar.
+4. Copie ese link con `Ctrl + Shift + C`, luego peguelo en el su navegador preferido. Asi podra usar la aplicacion si gusta puede guardar un acceso directo.
+
+5. Para cerrar la aplicacion puede salir de la terminal o puede apretar `Ctrl + C` para luego confirmar si quiere cerrar.
 
 
 ## Advertencias
@@ -44,7 +52,7 @@ Sigue estos pasos para iniciar el proyecto en tu máquina local:
 
 - **Cambio de orden**: cuando se actualiza una fila esta generalmete cambia de ubicacion subiendo o bajando en la tabla cuando se recarga la pagina.
 
-- **Filtro dinamico**: el filtro dinamico afecta a si mismo provocando que no se pueda elegir varios años, semanas, etc. Permitiendo que solo haya 1 por columna
+- **Filtro dinamico**: el filtro dinamico afecta a si mismo provocando que no se pueda elegir multiples items. Permitiendo que solo haya 1 por columna.
 
 ## Contribuciones
 Si deseas contribuir al proyecto, por favor sigue los siguientes pasos:
