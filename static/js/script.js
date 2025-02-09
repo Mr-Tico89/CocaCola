@@ -346,7 +346,7 @@ async function createFilterSelect(column, tableName, containerId) {
 }
 
 
-// Función auxiliar para agregar los checkboxes al menú desplegable, cada vez que se activa uno activa fetchUniqueValues
+// Función auxiliar para agregar los checkboxes al menú desplegable, cada vez que se activa uno activa fetchFilteredData
 function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, containerId) {
     uniqueValues.forEach(value => {
         const checkboxContainer = document.createElement('label');

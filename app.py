@@ -116,10 +116,10 @@ def get_unique_values(table_name):
     # Inicializar los filtros
     filters = []
     params = []
-
+    print(" request.args.items()",request.args.items())
     # Procesar los filtros que se recibieron
     for filter_column, filter_values in request.args.items():
-        if filter_column != "column":  # Ignorar el filtro de la columna
+        if filter_column not in ["column"] and filter_column != column:  # Excluir la columna consultada
             values = filter_values.split(',')
             filters.append(f"{filter_column} IN ({', '.join(['%s'] * len(values))})")
             params.extend(values)
@@ -127,11 +127,14 @@ def get_unique_values(table_name):
     # Construir la consulta con los filtros (si existen)
     filter_query = " AND ".join(filters) if filters else "1=1"  # Si no hay filtros, seleccionar todo
 
+
     # Construir la consulta para obtener valores únicos con filtros
     if column == "fecha":
         query = f"SELECT DISTINCT TO_CHAR({column}, 'DD-MM-YYYY') FROM {table_name} WHERE {filter_query};"
     else:
         query = f"SELECT DISTINCT {column} FROM {table_name} WHERE {filter_query};"
+
+
 
     # Ejecutar la consulta
     values = query_db(query, params)
@@ -577,4 +580,4 @@ def download_table():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000, debug=False)
+    app.run(host='0.0.0.0', port=8000, debug=True)
