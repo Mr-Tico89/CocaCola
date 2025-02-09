@@ -1,6 +1,7 @@
-// Autor: Mr.Tico89
-// Fecha: 10-02-2025
+// Proyecto CocaCola
 // rev: 1.0
+// Fecha: 10-02-2025
+// Autor: Mr.Tico89
 // Contacto: matinico71@gmail.com, @mati_rojasv (IG)
 // Respositorio: https://github.com/Mr-Tico89/CocaCola.git
 
