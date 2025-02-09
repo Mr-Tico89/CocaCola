@@ -14,6 +14,8 @@ Antes de iniciar el proyecto, asegúrate de tener instalados los siguientes leng
 
 Ademas existe un archivo nombrado requirements.txt, el cual contiene todas las librerias utilizadas, no tiene que instalarlas, el iniciar.bat se encargara de instalarlas si no las tiene. 
 
+> [!NOTE]
+> La Base de datos no viene incluida
 
 ## Instrucciones
 Sigue estos pasos para iniciar el proyecto en tu máquina local:
