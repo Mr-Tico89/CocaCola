@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Pensar un titlo bueno WIP -->
+    <title>1ra pagina web</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+
+</head>
+<body>
+    <div class="tab">
+
+        <button class="tablinks" onclick="openTab(event, 'Tab1')">Ver Tablas</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab2')">Averías Consolidadas</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab3')">HPR OEE</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab4')">Indicador Semanal</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab5')">Subir Datos</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab6')">Graficos</button>
+        
+    </div>
+
+
+    <!-- Contenido de las pestañas -->
+    <div id="Tab1" class="tabcontent">
+        <div class="select-button-container">
+            <label for="filterSelect" class="styled-label"> Seleccionar tabla:</label>
+
+            <select id="table-select" class="table-select" onchange="loadTableData('table-container-tab1', 'Tab1', this.value, true ); showDownloadButton();">
+                <option value="">Select a table</option>
+            </select>
+
+            <button id="download-btn" class="extra-button" onclick="downloadTable()" style="display: none;">
+                    Descargar Excel
+            </button>  
+
+            <div id="pagination"  style="display: none;">
+                <button id="prevPage1" class="extra-button" disabled>Anterior</button>
+                <span id="pageInfo1" class="styled-label"> Página 1 de 1 </span>
+                <button id="nextPage1" class="extra-button" disabled>Siguiente</button>
+            </div>
+
+        </div>
+        <div id="table-container-tab1" class="table-container"></div>
+    </div>
+    
+
+    <div id="Tab2" class="tabcontent">
+        <div class="select-button-container">
+
+            <div id="pagination">
+                <button id="prevPage2" class="extra-button" disabled>Anterior</button>
+                <span id="pageInfo2" class="styled-label" > Página 1 de 1 </span>
+                <button id="nextPage2" class="extra-button" disabled>Siguiente</button>
+            </div>
+
+        </div>
+
+        <div id="editable-container-tab2" class="table-container"></div>
+    </div>
+
+
+    <div id="Tab3" class="tabcontent">
+
+        <div class="select-button-container">
+
+            <div id="pagination">
+                <button id="prevPage3" class="extra-button" disabled>Anterior</button>
+                <span id="pageInfo3" class="styled-label"> Página 1 de 1 </span>
+                <button id="nextPage3" class="extra-button" disabled>Siguiente</button>
+            </div>
+
+        </div>
+
+        <div id="editable-container-tab3" class="table-container"></div>
+
+    </div>
+
+
+    <div id="Tab4" class="tabcontent">
+
+        <div class="select-button-container">
+
+            <label for="filterSelect" class="styled-label">Filtrar por categoría:</label>
+
+                <select id="filter-año" class="filter-select" multiple="multiple">
+                    <option value=""></option>
+                </select>
+                
+                <select id="filter-mes" class="filter-select" multiple="multiple">
+                    <option value=""></option>
+                </select>
+
+                <select id="filter-semana" class="filter-select" multiple="multiple"> 
+                    <option value=""></option>
+                </select>
+
+                <select id="filter-areas" class="filter-select" multiple="multiple">
+                    <option value=""></option>
+                </select>
+
+            <button id="Gen-button" class="extra-button">Generar Datos</button>
+
+        </div>
+
+        <div id="Indicador-container" class="table-container"></div>
+
+    </div>
+
+
+    <div id="Tab5" class="tabcontent">
+        <div class="select-button-container">
+            <label class="styled-Advice"> 
+                <span style="color: red;"><strong>IMPORTANTE: </strong></span>
+                SOLO se aceptan los datos crudos, idealmente que contengan estos
+                nombres los archivos (DATASHEEETFALLASSEMANALES... y OEEYDISPONIBILIDAD...)</label>
+        </div>
+        <div class="select-button-container">
+
+            <form id="upload-form" enctype="multipart/form-data">
+                <label for="file-input" class="styled-label"> Seleccionar archivo CSV: </label>
+                <input type="file" name="file" id="file-input" accept=".csv" class="file-input"/>
+                <button id="upload-button" class="extra-button" type="submit">Subir Archivo</button>
+            </form>
+
+            <div id="upload-status"></div>
+
+        </div>
+    </div>
+
+
+    <div id="Tab6" class="tabcontent">
+
+        <div class="select-button-container">
+            <button onclick="cargarPowerBI()" class="extra-button">Descargar Datos y abrir power BI</button>
+        </div>
+    
+    </div>
+
+
+    <button id="scrollToTopBtn" onclick="scrollToTop()">Subir</button>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</body>
+
+</html>
