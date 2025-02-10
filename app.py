@@ -520,7 +520,7 @@ def save():
 def cargar_powerbi():
     try:
         # URL del archivo en Google Drive
-        file_url = "https://drive.google.com/uc?id=1nSSnH0S38mBWiM5EQFVtVfjRBAxwx8Do&export=download"
+        file_url = "https://drive.google.com/uc?id=1MDdm68QYFjMr8L64D1rO0jncQbaN1yCu&export=download"
 
         # Descargar el archivo desde Google Drive
         response = requests.get(file_url, stream=True)
@@ -580,4 +580,4 @@ def download_table():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=8000, debug=False)
