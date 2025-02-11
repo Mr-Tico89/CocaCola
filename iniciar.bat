@@ -1,21 +1,22 @@
 @echo off
 echo Iniciando la aplicacion web...
 
-
 :: Verificar si el entorno virtual existe
 if not exist "entorno\Scripts\activate" (
     echo Creando entorno virtual...
     python -m venv entorno
-    echo Instalando dependencias...
-    call entorno\Scripts\activate
-    pip install -r requirements.txt
-    deactivate
+
+    echo Instalando dependencias desde requirements.txt...
+    call entorno\Scripts\activate.bat
+    pip install --no-cache-dir -r requirements.txt || (
+        echo Error: Falló la instalación de requirements.txt
+        exit /b 1
+    )
 )
 
-:: Activar entorno virtual e iniciar la aplicación
+:: Activar entorno virtual
 echo Activando entorno virtual...
-call entorno\Scripts\activate
-
+call entorno\Scripts\activate.bat
 
 :: Iniciar la aplicación Flask
 echo Iniciando la app...

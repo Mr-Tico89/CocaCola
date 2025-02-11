@@ -1,6 +1,5 @@
 # Proyecto CocaCola
 
-
 ## Resumen
 Este proyecto tiene como objetivo **optimizar y agilizar** el trabajo de los planificadores
 en el **taller de mantención de Coca-Cola Embonor**, ofreciendo una **solución integral para la gestión y visualización de datos**, lo que permite una administración más eficiente y precisa.
@@ -18,12 +17,12 @@ utilizadas, no tiene que instalarlas, el iniciar.bat se encargara de instalarlas
 > La Base de datos no viene incluida, consulte para mas detalle
 
 > [!NOTE]
-> El backend y el archivo power BI esta programado teniendo en cuenta que la base de 
-> datos esta en el mismo host 
+> El backend y el archivo de Power BI están configurados para operar con la base de datos 
+> alojada en el mismo host, utilizando el puerto predeterminado localhost:5432.
 
 
 ## Instrucciones
-Sigue estos pasos para iniciar el proyecto en tu máquina local:
+Sigue estos pasos para iniciar el proyecto:
 
 1. Dentro de la carpeta del proyecto existe el archivo iniciar.bat, abralo y se abrira un terminal.
 
@@ -48,6 +47,7 @@ confirmar si quiere cerrar.
 
 
 ## Advertencias
+
 - **Paginacion**: es posible que existan algunos bugs respecto a la paginacion cuando existen 
 filtros o se clikea rapido el boton, ya no ocurre con frecuencia pero pueden ocurrir. 
 

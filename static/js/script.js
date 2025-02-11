@@ -16,7 +16,7 @@
     // si necesitas ayuda. Mucho éxito en tu camino.  
     //  
     // "El universo dijo que tú eres el universo probándose a sí mismo, hablándose a sí mismo, 
-    //  leyendo su propio código. Y el universo dijo Te amo, porque tú eres el amor." 
+    //  leyendo su propio código." 
     //  -Minecraft  
     //  
     // Se despide el primer practicante Ing. civil en computacion de mantenimiento (hasta donde sé).  
@@ -123,8 +123,6 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => document.getElementById('upload-status').innerText = data.message)
             .catch(error => console.error('Error al subir el archivo:', error));
     });
-
-
 
 });
 

@@ -10,7 +10,6 @@ FROM information_schema.tables
 WHERE table_schema = 'datos_maquinaria';
 
 
-
 CREATE OR REPLACE FUNCTION tabla_nombres()
 RETURNS event_trigger AS $$
 BEGIN
@@ -18,7 +17,6 @@ BEGIN
     SELECT objid::regclass::text FROM pg_event_trigger_ddl_commands();
 END;
 $$ LANGUAGE plpgsql;
-
 
 
 CREATE EVENT TRIGGER trigger_registro_tabla
@@ -31,6 +29,8 @@ EXECUTE FUNCTION tabla_nombres();
 
 SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'datos_maquinaria';
+
+
 
 --tabla datos en bruto
 CREATE TABLE datos_maquinaria.DATASHEEET_FALLAS_SEMANALES (
