@@ -24,7 +24,6 @@ python app.py
 
 :: Mantener la consola abierta en caso de error
 echo.
-echo Presiona cualquier tecla para salir...
 pause
 
 
