@@ -116,7 +116,6 @@ def get_unique_values(table_name):
     # Inicializar los filtros
     filters = []
     params = []
-    print(" request.args.items()",request.args.items())
     # Procesar los filtros que se recibieron
     for filter_column, filter_values in request.args.items():
         if filter_column not in ["column"] and filter_column != column:  # Excluir la columna consultada
@@ -186,7 +185,6 @@ def get_filtered_data(table_name):
                 params.extend(values)
 
         filter_query = " AND ".join(filters) if filters else "1=1"
-        print(f"Filtro generado: {filter_query}")
 
         # Comprobar si table_name es igual a 'db_averias_consolidado'
         if table_name in ['db_averias_consolidado', 'hpr_oee']:
@@ -304,7 +302,7 @@ def update_row():
         count_query = f"SELECT COUNT(*) FROM {table_name} WHERE {where_clause}"
         count_result = query_db(count_query, params)
         row_count = count_result[0]["count"] if count_result else 0
-        print(f"Filas encontradas: {row_count}")
+
 
         if row_count == 0:
             return jsonify({"success": False, "error": "No se encontró ninguna fila para actualizar."}), 404
@@ -313,8 +311,6 @@ def update_row():
         query = f"UPDATE {table_name} SET {update_column} = %s WHERE {where_clause}"
         update_params = [new_value] + params  # Agregar el valor a actualizar antes de los filtros
 
-        print("SQL Query:", query)
-        print("SQL Params:", update_params)
 
         # Ejecutar la actualización real
         query_db(query, update_params, commit=True)
@@ -533,8 +529,6 @@ def cargar_powerbi():
         with open(temp_file_path, 'wb') as temp_file:
             for chunk in response.iter_content(chunk_size=8192):
                 temp_file.write(chunk)
-
-        print(f"Archivo descargado y guardado temporalmente en {temp_file_path}")
 
         # Enviar el archivo al cliente para que el navegador lo descargue
         return send_file(temp_file_path, as_attachment=True, download_name="planilla.pbix")
