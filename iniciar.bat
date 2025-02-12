@@ -3,15 +3,15 @@ echo Iniciando PostgreSQL...
 
 :: Obtener la ruta base del script (independiente de la letra de unidad)
 set "BASE_PATH=%~dp0"
-set "PGSQL_PATH=%BASE_PATH%..\pgsql"
 
-:: Ejecutar el script para iniciar PostgreSQL
-call "%PGSQL_PATH%\PostgreSQL-Start.bat"
+:: Establecer PGSQL_PATH apuntando a la carpeta pgsql al mismo nivel que CocaCola
+set "PGSQL_PATH=%BASE_PATH%pgsql"
+set "WEB_PATH=%BASE_PATH%CocaCola"
 
 
 echo Iniciando la aplicación web...
 :: Verificar si el entorno virtual existe
-if not exist "entorno\Scripts\activate" (
+if not exist "%WEB_PATH%\entorno\Scripts\activate" (
     echo Creando entorno virtual...
     python -m venv entorno
     echo Instalando dependencias...
@@ -22,17 +22,23 @@ if not exist "entorno\Scripts\activate" (
 
 :: Activar entorno virtual e iniciar la aplicación
 echo Activando entorno virtual...
-call entorno\Scripts\activate
+call "%WEB_PATH%\entorno\Scripts\activate
+
+
+:: Ejecutar el script para iniciar PostgreSQL en una nueva ventana
+START "Iniciando PostgreSQL" cmd /c "%PGSQL_PATH%\PostgreSQL-Start.bat"
 
 
 :: Iniciar la aplicación Flask
-echo Iniciando la app...
-python app.py
+START "Iniciando la app" cmd /c "python %WEB_PATH%\app.py
 
 
 :: Al cerrar la aplicación Flask, detener el clúster de PostgreSQL
-echo Cerrando el clúster de PostgreSQL...
-call "%PGSQL_PATH%\PostgreSQL-Stop.bat"
+echo Esperando a que la app termine...
+pause
+
+echo Cerrando postgreSQL...
+START "Cerrando PostgreSQL" cmd /c "%PGSQL_PATH%\PostgreSQL-Stop.bat"
 
 :: Mantener la consola abierta en caso de error
 echo.
