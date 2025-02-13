@@ -2,11 +2,10 @@
 echo Iniciando PostgreSQL...
 
 :: Obtener la ruta base del script (independiente de la letra de unidad)
-set "BASE_PATH=%~dp0"
+set "WEB_PATH=%~dp0"
 
 :: Establecer PGSQL_PATH apuntando a la carpeta pgsql al mismo nivel que CocaCola
-set "PGSQL_PATH=%BASE_PATH%pgsql"
-set "WEB_PATH=%BASE_PATH%CocaCola"
+set "PGSQL_PATH=!BASE_PATH:CocaCola=pgsql!"
 
 
 echo Iniciando la aplicación web...
@@ -30,8 +29,7 @@ START "Iniciando PostgreSQL" cmd /c "%PGSQL_PATH%\PostgreSQL-Start.bat"
 
 
 :: Iniciar la aplicación Flask
-START "Iniciando la app" cmd /c "python %WEB_PATH%\app.py
-
+call cmd /c "python %WEB_PATH%\app.py"
 
 :: Al cerrar la aplicación Flask, detener el clúster de PostgreSQL
 echo Esperando a que la app termine...
