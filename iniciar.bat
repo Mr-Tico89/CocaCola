@@ -1,15 +1,14 @@
 @echo off
-echo Iniciando PostgreSQL...
 
 :: Obtener la ruta base del script (independiente de la letra de unidad)
+setlocal enabledelayedexpansion
 set "WEB_PATH=%~dp0"
 
 :: Establecer PGSQL_PATH apuntando a la carpeta pgsql al mismo nivel que CocaCola
-set "PGSQL_PATH=%WEB_PATH:CocaCola=pgsql%"
+set "PGSQL_PATH=!WEB_PATH:CocaCola=pgsql!"
 
 
-
-echo Iniciando la aplicación web...
+echo Activando entorno virtual...
 :: Verificar si el entorno virtual existe
 if not exist "%WEB_PATH%\entorno\Scripts\activate" (
     echo Creando entorno virtual...
@@ -21,18 +20,20 @@ if not exist "%WEB_PATH%\entorno\Scripts\activate" (
 )
 
 :: Activar entorno virtual e iniciar la aplicación
-echo Activando entorno virtual...
-call "%WEB_PATH%\entorno\Scripts\activate
+call "%WEB_PATH%\entorno\Scripts\activate"
 
 
+echo Iniciando PostgreSQL...
 :: Ejecutar el script para iniciar PostgreSQL en una nueva ventana
 START "Iniciando PostgreSQL" cmd /c "%PGSQL_PATH%\PostgreSQL-Start.bat"
 
 
 :: Iniciar la aplicación Flask
-call cmd /c "python %WEB_PATH%\app.py"
+echo Iniciando app web...
+call python %WEB_PATH%\app.py
 
 :: Al cerrar la aplicación Flask, detener el clúster de PostgreSQL
+
 echo Esperando a que la app termine...
 pause
 
@@ -43,14 +44,3 @@ START "Cerrando PostgreSQL" cmd /c "%PGSQL_PATH%\PostgreSQL-Stop.bat"
 echo.
 echo Presiona cualquier tecla para salir...
 pause
-
-
-
-
-
-
-
-
-
-
-
