@@ -5,7 +5,8 @@ echo Iniciando PostgreSQL...
 set "WEB_PATH=%~dp0"
 
 :: Establecer PGSQL_PATH apuntando a la carpeta pgsql al mismo nivel que CocaCola
-set "PGSQL_PATH=!BASE_PATH:CocaCola=pgsql!"
+set "PGSQL_PATH=%WEB_PATH:CocaCola=pgsql%"
+
 
 
 echo Iniciando la aplicación web...
