@@ -510,34 +510,22 @@ def save():
         conn.close()
 
 
+# Ruta del archivo en la carpeta del proyecto
+FILE_PATH = os.path.join(os.getcwd(), "files", "planilla.pbix")
+
 #funcion para descargar planilla.pbix del drive 
 @app.route('/cargar-powerbi', methods=['POST'])
 def cargar_powerbi():
     try:
-        # URL del archivo en Google Drive
-        file_url = "https://drive.google.com/uc?id=1MDdm68QYFjMr8L64D1rO0jncQbaN1yCu&export=download"
+        if not os.path.exists(FILE_PATH):
+            return jsonify({"mensaje": "El archivo no existe en el servidor"}), 404
 
-        # Descargar el archivo desde Google Drive
-        response = requests.get(file_url, stream=True)
-        if response.status_code != 200:
-            return jsonify({"mensaje": "No se pudo descargar el archivo", "error": f"HTTP {response.status_code}"}), 500
-
-        # Guardar el archivo temporalmente
-        temp_dir = tempfile.gettempdir()
-        temp_file_path = os.path.join(temp_dir, "planilla.pbix")
-        with open(temp_file_path, 'wb') as temp_file:
-            for chunk in response.iter_content(chunk_size=8192):
-                temp_file.write(chunk)
-
-        print(f"Archivo descargado y guardado temporalmente en {temp_file_path}")
-
-        # Enviar el archivo al cliente para que el navegador lo descargue
-        return send_file(temp_file_path, as_attachment=True, download_name="planilla.pbix")
+        # Enviar el archivo al cliente para su descarga
+        return send_file(FILE_PATH, as_attachment=True, download_name="planilla.pbix")
 
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"mensaje": "Ocurrió un error", "error": str(e)}), 500
-
 
 #funcion para descargar los datos de la tabla a un archivo excel
 @app.route('/download', methods=['POST'])
