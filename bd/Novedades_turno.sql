@@ -15,10 +15,10 @@ CREATE TABLE datos_maquinaria.FORMS_MTTO (
     Tiempo  INT,
     Estado VARCHAR (255),
     Equipo_L2 VARCHAR (255),
-    Equipos_L3 VARCHAR (255),
-    Equipos_L4 VARCHAR (20),
-    Equipos_L5 VARCHAR (255),
-    Equipos_L6  VARCHAR (255),
+    Equipo_L3 VARCHAR (255),
+    Equipo_L4 VARCHAR (20),
+    Equipo_L5 VARCHAR (255),
+    Equipo_L6  VARCHAR (255),
     Sala_de_agua VARCHAR (255)
     Sala_Jarabe VARCHAR (255),
     Riles VARCHAR (255),
@@ -63,19 +63,36 @@ CREATE TABLE datos_maquinaria.Novedades_Turno (
     TIEMPO_(MIN) INT,
     HR FLOAT,
     DETIENE_LINEA  VARCHAR (255),
-    CONSTRAINT fk_id FOREIGN KEY (ID) REFERENCES clientes(id)
+    CONSTRAINT fk_id FOREIGN KEY (ID) REFERENCES FORMS_MTTO(id)
 );
 
 
+CREATE OR REPLACE FUNCTION trg_insert_novedades_turno()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO NOVEDADES_TURNO (
+        id,
+        minutos, 
+        maquina,
+        
+    ) VALUES (
+        NEW.id,  -- Inserta la ID de FORMS_MTTO
+        EXTRACT(EPOCH FROM (NEW.completion_time - NEW.start_time)) / 60, -- Diferencia en minutos
+        CONCAT_WS(' | ', 
+            NEW.Equipo_L2, NEW.Equipo_L3, NEW.Equipo_L4, 
+            NEW.Equipo_L5, NEW.Equipo_L6, NEW.Sala_de_agua, 
+            NEW.Sala_Jarabe, NEW.Riles
+        )  -- Fusiona los campos en "maquina"
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 
-
-
-
-
-
-
-
+CREATE TRIGGER insert_into_novedades_turno
+AFTER INSERT ON FORMS_MTTO
+FOR EACH ROW
+EXECUTE FUNCTION trg_insert_novedades_turno();
 
 
 
