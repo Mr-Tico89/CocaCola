@@ -192,7 +192,7 @@ function showDownloadButton() {
 
 //crea el json para guardarlo en ind_semanal_historico
 function CreateJsonInd(jsonData, boolean) {
-    const newColumns = ["id", "año", "semana", "disp", "meta", "mtbf", "mttr", "averias", "minutos", "oee", "parosmenores"];
+    const newColumns = ["id", "año", "semana", "disp", "meta", "mtbf", "mttr", "averias", "minutos", "parosmenores"];
     const ParosMenores = boolean
     const año = selectedFilters.año[0]; // Obtener el año desde selectedFilters
     const semana = selectedFilters.semana[0]; // Obtener la semana desde selectedFilters
@@ -209,7 +209,6 @@ function CreateJsonInd(jsonData, boolean) {
                 mttr: parseFloat(item.mttr) || 0,
                 averias: parseInt(item.averias) || 0,
                 minutos: parseInt(item.minutos) || 0,
-                oee: parseFloat(item.oee.replace('%', '')) / 100 || 0,
                 parosmenores: ParosMenores,  
             })),
         table_name: "indicador_semanal_historico"
