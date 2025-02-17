@@ -9,7 +9,7 @@ en el **taller de mantención de Coca-Cola Embonor**, ofreciendo una **solución
 ## Requisitos 
 Antes de iniciar el proyecto, asegúrate de tener instalados los siguientes lenguajes:
 - Python 3.12 +
-- PostgreSQL 17.2 +
+- PostgreSQL 16.1 +
 
 Ademas existe un archivo nombrado requirements.txt, el cual contiene todas las librerias 
 utilizadas, no tiene que instalarlas, el iniciar.bat se encargara de instalarlas si no las tiene. 
@@ -18,12 +18,12 @@ utilizadas, no tiene que instalarlas, el iniciar.bat se encargara de instalarlas
 > La Base de datos no viene incluida, consulte para mas detalle
 
 > [!NOTE]
-> El backend y el archivo power BI esta programado teniendo en cuenta que la base de 
-> datos esta en el mismo host 
+> El backend y el archivo de Power BI están configurados para operar con la base de datos 
+> alojada en el mismo host, utilizando el puerto predeterminado localhost:5432.
 
 
 ## Instrucciones
-Sigue estos pasos para iniciar el proyecto en tu máquina local:
+Sigue estos pasos para iniciar el proyecto:
 
 1. Dentro de la carpeta del proyecto existe el archivo iniciar.bat, abralo y se abrira un terminal.
 
@@ -59,7 +59,7 @@ datos ya procesados lo puede hacer mediantes consultas SQL en la base de datos.
 
 ## Bugs encontrados
 - **Filtro para observaciones**: este filtro se sale del margen de la pagina, ademas se limito 
-el texto de este.
+el texto de este. Esto ocurre para patallas de menor tamaño.
 
 - **Cambio de orden**: cuando se actualiza una fila esta generalmete cambia de ubicacion 
 subiendo o bajando en la tabla cuando se recarga la pagina.
