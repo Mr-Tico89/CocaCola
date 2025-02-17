@@ -33,7 +33,6 @@ echo Iniciando app web...
 call python %WEB_PATH%\app.py
 
 :: Al cerrar la aplicación Flask, detener el clúster de PostgreSQL
-
 echo Esperando a que la app termine...
 pause
 
