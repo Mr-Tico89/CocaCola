@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Agregar eventos a los filtros
     document.querySelectorAll('.filter-select').forEach(select => {
+        console.log("hola toi en uso")
         select.addEventListener('change', (event) => {
             const selectId = event.target.id.replace('filter-', ''); // ID del select
             const value = Array.from(event.target.selectedOptions).map(option => option.value); // Valores seleccionados
@@ -85,14 +86,17 @@ document.addEventListener('DOMContentLoaded', function () {
             tableContainer.innerHTML = '<p>Actualizando datos...</p>';
     
             // Ejecutar los filtros y cálculos
-            const data = await applyFiltersAndCalculate();
+            const data = await applyFiltersAndCalculate(); //ver q ondis pq falla
             // Guardar los datos procesados
             await saveData(data);
 
             // Llamada a la función
             // Verificar si selectedFilters.año y selectedFilters.semana tienen longitud 1
-            if (selectedFilters.año.length === 1 && selectedFilters.semana.length === 1 && selectedFilters.areas.length >= 2 ) {
-                const result = CreateJsonInd(data, selectedFilters.areas.includes("Paros Menores"));
+            if (globalActiveFilters.año.size >= 1 && globalActiveFilters.mes.size >= 1 && 
+                globalActiveFilters.semana.size >= 1 && globalActiveFilters.areas.size >= 2
+            ) {
+                const result = CreateJsonInd(data, globalActiveFilters.areas.has("Paros Menores")); //ver q ondis pqq falla
+                console.log("hol1aa",result)
                 await saveData(result);
             }
 
@@ -225,21 +229,27 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
     }
 }
 
+
 // crea el menu desplegable
-function createDropdownFilter() {
+function createDropdownFilter(filterName, column) {
     // Crear el contenedor principal del filtro
     const container = document.createElement('div');
-    container.classList.add('filter-container');
-
+    container.classList.add(`${filterName}-container`);
+    
     // Crear el botón desplegable
     const dropdownButton = document.createElement('button');
-    dropdownButton.textContent = '▼';  // Mejor icono visual
-    dropdownButton.classList.add('dropdown-button');
+    if (filterName === "dropdown") {
+        dropdownButton.textContent = '▼';  // Mejor icono visual
+    } else {
+        dropdownButton.textContent = column;
+    }
+    
+    dropdownButton.classList.add(`${filterName}-button`);
     dropdownButton.setAttribute('aria-expanded', 'false'); // Accesibilidad
 
     // Crear el menú desplegable
     const dropdownMenu = document.createElement('div');
-    dropdownMenu.classList.add('dropdown-menu');
+    dropdownMenu.classList.add(`${filterName}-menu`);
     dropdownMenu.setAttribute('role', 'menu');
 
     let closeTimeout; // Variable para manejar el tiempo de cierre
@@ -301,7 +311,6 @@ function createDropdownFilter() {
 }
 
 
-
 // funcion para crear los valores unicos, para los filtros de columnas 
 async function fetchUniqueValues(column, tableName) {
     const filters = {};
@@ -330,55 +339,28 @@ async function fetchUniqueValues(column, tableName) {
 
 
 // Función madre para crear el boton de filtros y menu desplegable
-async function createFilterSelect(column, tableName, containerId) {
+async function createFilterSelect(filterName, column, tableName, containerId) {
     // Crear el contenedor para el filtro
     
-    const { container, dropdownMenu } = createDropdownFilter();
+    const { container, dropdownMenu } = createDropdownFilter(filterName, column);
 
     // Obtener valores únicos desde el backend
     const uniqueValues = await fetchUniqueValues(column, tableName);  
 
-    // Agregar los checkboxes para los valores únicos obtenidos
-    addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, containerId);
+    // Agregar los checkboxes y los valores únicos obtenidos al dropdownMenu
+    addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId);
 
-    return { container, activeFilters: globalActiveFilters };
+    return container;
 }
 
 
 // Función auxiliar para agregar los checkboxes al menú desplegable, cada vez que se activa uno activa fetchFilteredData
-function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, containerId) {
-
-    // Botón para borrar filtros
-    const clearButton = document.createElement('button');
-    clearButton.textContent = 'Borrar filtros';
-    clearButton.classList.add('clear-filters-button');
-    clearButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-         
-        dropdownMenu.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-         
-        // Si existe un filtro activo en la columna, lo limpiamos
-        if (globalActiveFilters[column]) {
-            globalActiveFilters[column].clear();
-        }
- 
-        // Si el containerId no contiene "filter", obtenemos los datos filtrados
-        if (!containerId.includes("filter")) {
-            fetchFilteredData(tableName, containerId);
-        } else {
-            // Si el containerId contiene "filter", simplemente logueamos el mensaje
-
-            addFilterToTable(column)
-        } 
-    });
-    dropdownMenu.appendChild(clearButton);
-
+function addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId) {
+    createClearFiltersButton(dropdownMenu, column, containerId, tableName);
 
     uniqueValues.forEach(value => {
         const checkboxContainer = document.createElement('label');
-        checkboxContainer.classList.add('dropdown-item');
+        checkboxContainer.classList.add(`${filterName}-item`);
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
@@ -387,11 +369,13 @@ function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, 
         const label = document.createElement('span');
         label.textContent = value;
 
+        
         // Asegurar que globalActiveFilters esté inicializado
         if (!globalActiveFilters[column]) {
             globalActiveFilters[column] = new Set();  // Inicializar como un conjunto vacío
         }
-
+        
+        
         // Verificar si el valor está en globalActiveFilters y marcar el checkbox
         if (globalActiveFilters[column].has(String(value))) {
             checkbox.checked = true;  // Si está en globalActiveFilters, marcar el checkbox
@@ -399,6 +383,7 @@ function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, 
 
         // Manejar cambio en el estado del checkbox
         checkbox.addEventListener('change', () => {
+
             // Actualizamos el filtro según si el checkbox está marcado o no
             if (checkbox.checked) {
                 globalActiveFilters[column].add(String(value));
@@ -412,8 +397,10 @@ function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, 
             } else {
                 // Si el containerId contiene "filter", mostramos el mensaje en consola
                 const columms = ['año', 'mes', 'semana']
-                columms.forEach(column => {
-                    addFilterToTable(column)
+                columms.forEach(colummn => {
+                    if (!(column == colummn)) {
+                        addFilterToTable(colummn)
+                    }   
                 });
             }
         });
@@ -423,6 +410,43 @@ function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, 
         dropdownMenu.appendChild(checkboxContainer);
     });
 }
+
+
+function createClearFiltersButton(dropdownMenu, column, containerId, tableName) {
+    const clearButton = document.createElement('button');
+    clearButton.textContent = 'Borrar filtros';
+    clearButton.classList.add('clear-filters-button');
+    
+    clearButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        
+        // Desmarcar todos los checkboxes dentro del menú desplegable
+        dropdownMenu.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Limpiar los filtros activos de la columna si existen
+        if (globalActiveFilters[column]) {
+            globalActiveFilters[column].clear();
+        }
+        
+        // Verificar si el containerId no contiene "filter"
+        if (!containerId.includes("filter")) {
+            fetchFilteredData(tableName, containerId);
+        } else {
+            // Si el containerId contiene "filter", mostramos el mensaje en consola
+            const columms = ['año', 'mes', 'semana']
+            columms.forEach(colummn => {
+                if (!(column == colummn)) {
+                    addFilterToTable(colummn)
+                }
+            });  
+        }
+    });
+    
+    dropdownMenu.appendChild(clearButton);
+}
+
 
 
 //funcion para actualizar la tabla con los valores unicos (filtros dinamicos), implementarlos a ind_sem WIP
@@ -607,12 +631,8 @@ function renderEditableTable(response, containerId) {
     const table = createTableElement('editable-table');
 
 
-    // Contenedor para los filtros activos globales
-    const globalActiveFilters = {};
-
-
     // Crear encabezados con filtros
-    const thead = createTableHeader(columns, containerId, globalActiveFilters, table_name);
+    const thead = createTableHeader(columns, containerId, table_name);
 
 
     // Crear cuerpo de la tabla
@@ -637,7 +657,7 @@ function createTableElement(className) {
 
 
 //crear el encabezado de la tabla
-function createTableHeader(columns, containerId, globalActiveFilters, tableName) {
+function createTableHeader(columns, containerId, tableName) {
     const thead = document.createElement('thead');
     thead.classList.add('editable-table-header');
     const headerRow = thead.insertRow();
@@ -652,12 +672,12 @@ function createTableHeader(columns, containerId, globalActiveFilters, tableName)
 
     columns.forEach(column => {
         const th = createHeaderCell(
-            column.replace(/_/g, ' ').charAt(0).toUpperCase() + column.replace(/_/g, ' ').slice(1)
+            column.replace(/_/g, ' ').charAt(0).toUpperCase() + column.replace(/_/g, ' ').slice(1) //deja bonito el titulo de la columna
         );
 
         // Crear filtro para cada columna
-        createFilterSelect(column, tableName, containerId).then(({ container, activeFilters }) => {
-            globalActiveFilters[column] = activeFilters; // Guardar referencia a filtros activos
+        createFilterSelect('dropdown', column, tableName, containerId)
+        .then(container => {
             th.appendChild(container);  // Añadir el contenedor del filtro al encabezado de la columna
         });
 
@@ -865,8 +885,8 @@ async function addFilterToTable(filter) {
     const headerRow = thead.insertRow();
     const th = createHeaderCell();
 
-    await createFilterSelect(filter, 'db_averias_consolidado', `filter-${filter}`)
-    .then(({ container }) => {
+    await createFilterSelect('filter', filter, 'db_averias_consolidado', `filter-${filter}`)
+    .then(container => {
         th.appendChild(container);
 
         // Agregarlo también al div con id="filter-año"
@@ -917,22 +937,22 @@ function applyFiltersAndCalculate() {
         if (!averiasData || !averiasData.data || !oeeData || !oeeData.data) {
             throw new Error("Los datos de las tablas no son válidos.");
         }
-
-        // Filtrar los datos según los filtros seleccionados db_averias_consolidado
+        // Filtrar los datos según los filtros seleccionados db_averias_consolidado cambiarlo para que lo haga SQL
         const filteredAverias = averiasData.data.filter(row => {
-            return Object.entries(selectedFilters).every(([key, values]) => {
+            return Object.entries(globalActiveFilters).every(([key, values]) => {
                 const rowValue = String(row[key] || ""); // Asegurarse de que el valor sea una cadena
-                return values.includes(rowValue);
+                return values.has(rowValue);
             });
         });
+        console.log("filteredAverias",filteredAverias)
 
         // Filtrar los datos según los filtros seleccionados OEE
         const filteredOEE = oeeData.data.filter(row => {
-            return Object.entries(selectedFilters).every(([key, values]) => {
+            return Object.entries(globalActiveFilters).every(([key, values]) => {
                 // Ignorar el filtro de "area" para esta tabla
                 if (key === 'areas') return true;
                 const rowValue = String(row[key] || ""); // Asegurarse de que el valor sea una cadena
-                return values.includes(rowValue);
+                return values.has(rowValue);
             });
         });
 
