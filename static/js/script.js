@@ -916,8 +916,20 @@ async function loadFullTableData(tableName = null) {
     const table = tableName || document.getElementById('table-select').value;
     if (!table) return;
 
+    // Construir filtros activos
+    for (const column in globalActiveFilters) {
+        if (globalActiveFilters[column]?.size > 0) {
+            filters[column] = [...globalActiveFilters[column]].join(',');
+        }
+    }
+
+    // Construir URL con parámetros de filtros
+    const queryString = new URLSearchParams(filters).toString();
+
     try {
-        const response = await fetch(`/tables/${table}/data`);
+        const url = `/tables/${table}/data?${queryString}`;
+        console.log("Fetching data from:", url); // Debug URL
+        const response = await fetch(url)
         const data = await response.json();
         return data;
     } catch (error) {
@@ -937,6 +949,7 @@ function applyFiltersAndCalculate() {
         if (!averiasData || !averiasData.data || !oeeData || !oeeData.data) {
             throw new Error("Los datos de las tablas no son válidos.");
         }
+        console.log("averiasData",averiasData)
         // Filtrar los datos según los filtros seleccionados db_averias_consolidado cambiarlo para que lo haga SQL
         const filteredAverias = averiasData.data.filter(row => {
             return Object.entries(globalActiveFilters).every(([key, values]) => {

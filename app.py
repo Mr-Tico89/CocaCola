@@ -7,6 +7,7 @@ from psycopg2.extras import RealDictCursor
 import os
 import pandas as pd
 from io import BytesIO
+from urllib.parse import unquote  
 
 
 
@@ -229,8 +230,7 @@ def get_filtered_data(table_name):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-
-#codigo para obtener todos los datos de las tablas sin paginar
+#codigo para obtener todos los datos de las tablas sin paginar y con filtros
 @app.route('/tables/<table_name>/data', methods=['GET'])
 def get_table_data(table_name):
     try:
@@ -241,11 +241,27 @@ def get_table_data(table_name):
         WHERE table_schema = 'datos_maquinaria' AND table_name = %s
         ORDER BY ordinal_position;
         """
+
         columns = query_db(query_columns, (table_name,))
         column_names = [col["column_name"] for col in columns]
 
+        filters = []
+        params = []
+
+        # Aplicar filtros dinámicamente
+        for column, value in request.args.items():
+            if column in column_names:  # Evitar SQL Injection asegurando que la columna existe
+                values = value.split(',')
+                placeholders = ', '.join(['%s'] * len(values))
+                filters.append(f'"{column}" IN ({placeholders})')
+                params.extend(values)
+
+        filter_query = " AND ".join(filters) if filters else "1=1"
+
+
+
         # Obtener todos los datos sin paginación
-        query = f"SELECT row_to_json(t) FROM (SELECT * FROM {table_name} ) t"
+        query = f"SELECT row_to_json(t) FROM (SELECT * FROM {table_name} WHERE {filter_query} ) t"
         data = query_db(query)
 
         # Extraer los diccionarios JSON de las tuplas
@@ -260,7 +276,6 @@ def get_table_data(table_name):
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
 
 
 #codigo para actualizar la fila de la tabla 
@@ -358,7 +373,6 @@ def delete_row():
     
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
 
 
 # Función para cargar los datos en la base de datos después de subir el archivo
@@ -513,6 +527,7 @@ def save():
 # Ruta del archivo en la carpeta del proyecto
 FILE_PATH = os.path.join(os.getcwd(), "files", "planilla.pbix")
 
+
 #funcion para descargar planilla.pbix del drive 
 @app.route('/cargar-powerbi', methods=['POST'])
 def cargar_powerbi():
@@ -526,6 +541,7 @@ def cargar_powerbi():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"mensaje": "Ocurrió un error", "error": str(e)}), 500
+
 
 #funcion para descargar los datos de la tabla a un archivo excel
 @app.route('/download', methods=['POST'])
@@ -559,6 +575,16 @@ def download_table():
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
+
+
+
+
+
+
+
 
 
 
