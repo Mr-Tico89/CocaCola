@@ -117,6 +117,7 @@ def get_unique_values(table_name):
     # Inicializar los filtros
     filters = []
     params = []
+    
     # Procesar los filtros que se recibieron
     for filter_column, filter_values in request.args.items():
         if filter_column not in ["column"] and filter_column != column:  # Excluir la columna consultada
@@ -133,7 +134,6 @@ def get_unique_values(table_name):
         query = f"SELECT DISTINCT TO_CHAR({column}, 'DD-MM-YYYY') FROM {table_name} WHERE {filter_query};"
     else:
         query = f"SELECT DISTINCT {column} FROM {table_name} WHERE {filter_query};"
-
 
 
     # Ejecutar la consulta
@@ -245,6 +245,7 @@ def get_table_data(table_name):
         columns = query_db(query_columns, (table_name,))
         column_names = [col["column_name"] for col in columns]
 
+
         filters = []
         params = []
 
@@ -259,10 +260,12 @@ def get_table_data(table_name):
         filter_query = " AND ".join(filters) if filters else "1=1"
 
 
-
+        print(filter_query)
         # Obtener todos los datos sin paginación
         query = f"SELECT row_to_json(t) FROM (SELECT * FROM {table_name} WHERE {filter_query} ) t"
-        data = query_db(query)
+        print(f"Query generada: {query}")
+        print(f"Parámetros: {params}")
+        data = query_db(query, params)
 
         # Extraer los diccionarios JSON de las tuplas
         formatted_data = [row["row_to_json"] for row in data]
@@ -282,7 +285,7 @@ def get_table_data(table_name):
 @app.route('/update_row', methods=['POST'])
 def update_row():
     try:
-        
+
         data = request.json
         table_name = data.get("table_name")
         row_data = data.get("row_data")  # Identificación de la fila
@@ -575,13 +578,6 @@ def download_table():
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-
-
-
-
-
 
 
 

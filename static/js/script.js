@@ -96,7 +96,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 globalActiveFilters.semana.size >= 1 && globalActiveFilters.areas.size >= 2
             ) {
                 const result = CreateJsonInd(data, globalActiveFilters.areas.has("Paros Menores")); //ver q ondis pqq falla
-                console.log("hol1aa",result)
                 await saveData(result);
             }
 
@@ -314,6 +313,7 @@ function createDropdownFilter(filterName, column) {
 // funcion para crear los valores unicos, para los filtros de columnas 
 async function fetchUniqueValues(column, tableName) {
     const filters = {};
+
     // Convertir los filtros de globalActiveFilters a un formato adecuado
     Object.keys(globalActiveFilters).forEach(column => {
         // Si el Set no está vacío, lo convertimos a array
@@ -344,12 +344,13 @@ async function createFilterSelect(filterName, column, tableName, containerId) {
     
     const { container, dropdownMenu } = createDropdownFilter(filterName, column);
 
-    // Obtener valores únicos desde el backend
-    const uniqueValues = await fetchUniqueValues(column, tableName);  
+    if (!(containerId == "Indicador-container")){
+        // Obtener valores únicos desde el backend
+        const uniqueValues = await fetchUniqueValues(column, tableName);  
 
-    // Agregar los checkboxes y los valores únicos obtenidos al dropdownMenu
-    addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId);
-
+        // Agregar los checkboxes y los valores únicos obtenidos al dropdownMenu
+        addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId);
+    }
     return container;
 }
 
@@ -916,6 +917,7 @@ async function loadFullTableData(tableName = null) {
     const table = tableName || document.getElementById('table-select').value;
     if (!table) return;
 
+    const filters = {};
     // Construir filtros activos
     for (const column in globalActiveFilters) {
         if (globalActiveFilters[column]?.size > 0) {
@@ -925,10 +927,8 @@ async function loadFullTableData(tableName = null) {
 
     // Construir URL con parámetros de filtros
     const queryString = new URLSearchParams(filters).toString();
-
     try {
         const url = `/tables/${table}/data?${queryString}`;
-        console.log("Fetching data from:", url); // Debug URL
         const response = await fetch(url)
         const data = await response.json();
         return data;
@@ -949,26 +949,6 @@ function applyFiltersAndCalculate() {
         if (!averiasData || !averiasData.data || !oeeData || !oeeData.data) {
             throw new Error("Los datos de las tablas no son válidos.");
         }
-        console.log("averiasData",averiasData)
-        // Filtrar los datos según los filtros seleccionados db_averias_consolidado cambiarlo para que lo haga SQL
-        const filteredAverias = averiasData.data.filter(row => {
-            return Object.entries(globalActiveFilters).every(([key, values]) => {
-                const rowValue = String(row[key] || ""); // Asegurarse de que el valor sea una cadena
-                return values.has(rowValue);
-            });
-        });
-        console.log("filteredAverias",filteredAverias)
-
-        // Filtrar los datos según los filtros seleccionados OEE
-        const filteredOEE = oeeData.data.filter(row => {
-            return Object.entries(globalActiveFilters).every(([key, values]) => {
-                // Ignorar el filtro de "area" para esta tabla
-                if (key === 'areas') return true;
-                const rowValue = String(row[key] || ""); // Asegurarse de que el valor sea una cadena
-                return values.has(rowValue);
-            });
-        });
-
         // Inicializar objetos de minutos para cada tabla
         let minutosAverias = { 
             minutos: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
@@ -990,12 +970,11 @@ function applyFiltersAndCalculate() {
         };
 
         // Calcular minutos para ambas tablas usando la función auxiliar con los campos específicos
-        minutosAverias = calculateTotalMinutesById(filteredAverias, minutosAverias, 'id', 'minutos');
-        minutosOEE = calculateTotalMinutesById(filteredOEE, minutosOEE, 'linea', 'min');
+        minutosAverias = calculateTotalMinutesById(averiasData, minutosAverias, 'id', 'minutos');
+        minutosOEE = calculateTotalMinutesById(oeeData, minutosOEE, 'linea', 'min');
         metrics = calculateMetrics(minutosAverias, minutosOEE, metrics);
-        const avg = calculateOEEAverage(filteredOEE)
+        const avg = calculateOEEAverage(oeeData.data)
         updateIndData(indData, minutosAverias, minutosOEE, metrics, avg);
-
         // Devolver los datos procesados
         return indData;
     })
@@ -1008,13 +987,19 @@ function applyFiltersAndCalculate() {
 
 // Función auxiliar para calcular los minutos por ID o Línea
 function calculateTotalMinutesById(filteredData, minutosAverias, idField, valueField) {
-    filteredData.forEach(row => {
+    filteredData.data.forEach(row => {
         const id = row[idField]; // Campo usado como clave (ej. "id" o "linea")
         const value = parseFloat(row[valueField]); // Campo usado para sumar (ej. "minutos" o "min")
 
         if (!id || isNaN(value)) {
             console.warn(`Fila ignorada: ${idField}="${id}", ${valueField}="${row[valueField]}"`);
             return; // Ignorar filas sin clave o sin valor válido
+        }
+
+        // Inicializar si no existe la clave
+        if (!minutosAverias.minutos[id]) {
+            minutosAverias.minutos[id] = 0;
+            minutosAverias.countMin[id] = 0;
         }
 
         // Sumar los valores del campo especificado
@@ -1189,8 +1174,8 @@ function cargarPowerBI() {
 function CreateJsonInd(jsonData, boolean) {
     const newColumns = ["id", "año", "semana", "disp", "meta", "mtbf", "mttr", "averias", "minutos", "oee", "parosmenores"];
     const ParosMenores = boolean
-    const año = selectedFilters.año[0]; // Obtener el año desde selectedFilters
-    const semana = selectedFilters.semana[0]; // Obtener la semana desde selectedFilters
+    const año = selectedFilters.año; // Obtener el año desde selectedFilters
+    const semana = selectedFilters.semana; // Obtener la semana desde selectedFilters
     const resultado = {
         columns: newColumns,
         data: jsonData.data
@@ -1199,17 +1184,17 @@ function CreateJsonInd(jsonData, boolean) {
                 id: item.total_general, // Renombrar total_general a id
                 año: año,
                 semana: semana,
-                disp: parseFloat(item.disp.replace('%', '')) / 100 || 0, // Convertir porcentaje a decimal
-                mtbf: parseFloat(item.mtbf) || 0,
-                mttr: parseFloat(item.mttr) || 0,
-                averias: parseInt(item.averias) || 0,
-                minutos: parseInt(item.minutos) || 0,
-                oee: parseFloat(item.oee.replace('%', '')) / 100 || 0,
+                disp: item.disp ? parseFloat(item.disp.replace('%', '')) / 100 : 0, // Convertir porcentaje a decimal
+                mtbf: item.mtbf ? parseFloat(item.mtbf) : 0,
+                mttr: item.mttr ? parseFloat(item.mttr) : 0,
+                averias: item.averias ? parseInt(item.averias) : 0,
+                minutos: item.minutos ? parseInt(item.minutos) : 0,
                 parosmenores: ParosMenores,  
             })),
         table_name: "indicador_semanal_historico"
     };
-    return resultado
+
+    return resultado;
 }
 
 

@@ -7,7 +7,7 @@ en el **taller de mantención de Coca-Cola Embonor**, ofreciendo una **solución
 
 
 ## Requisitos 
-Antes de iniciar el proyecto, asegúrate de tener instalados los siguientes lenguajes:
+El proyecto utiliza los siguientes lenguajes, el disco duro ya viene con postgreSQL
 - Python 3.12 +
 - PostgreSQL 16.1 +
 
@@ -40,7 +40,7 @@ el entorno virtual.
     Running on http://XXX.XXX.XXXX:8000
     ```
 
-4. Copie ese link con `Ctrl + Shift + C`, luego peguelo en el su navegador preferido. Asi podra 
+4. Copie ese link con `Ctrl + C`, luego peguelo en el su navegador preferido. Asi podra 
 usar la aplicacion si gusta puede guardar un acceso directo.
 
 5. Para cerrar la aplicacion puede salir de la terminal o puede apretar `Ctrl + C` para luego 
@@ -54,7 +54,7 @@ filtros o se clikea rapido el boton, ya no ocurre con frecuencia pero pueden ocu
 - **Agregar Datos**: Para añadir los datos solo se puede con csv sin procesar, si quiere agregar 
 datos ya procesados lo puede hacer mediantes consultas SQL en la base de datos.
 
-- **Filtros Indicadores**: Los filtros de indicadores semanales no son dinamicos
+- **Optimizacion**: Se podria mejorar la optimizacion del codigo
 
 
 ## Bugs encontrados
