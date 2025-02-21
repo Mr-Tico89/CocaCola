@@ -537,17 +537,13 @@ def save():
         conn.close()
 
 
-# Ruta del archivo en la carpeta del proyecto
-FILE = os.path.join(os.getcwd(), "files", "planilla.pbix")
-print(FILE)
-
 #funcion para descargar planilla.pbix del drive 
-@app.route('/descargar-powerbi', methods=['GET'])
+@app.route('/powerbi', methods=['GET'])
 def cargar_powerbi():
+    ruta_archivo = os.path.abspath("files/planilla.pbix")  # Ruta completa del archivo
     try:
-        carpeta = os.path.join(os.getcwd(), "files")  # Asegúrate de que 'files' es la carpeta correcta
-        nombre_archivo = "planilla.pbix"
-        return send_from_directory(carpeta, nombre_archivo, as_attachment=True)
+        os.startfile(ruta_archivo)  # Abre el archivo en la app predeterminada (Power BI)
+        return jsonify({"mensaje": "Archivo abierto en Power BI"})
 
     except Exception as e:
         print(f"Error: {e}")
@@ -586,10 +582,6 @@ def download_table():
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-
-
 
 
 if __name__ == "__main__":

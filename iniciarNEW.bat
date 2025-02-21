@@ -4,15 +4,20 @@ setlocal enabledelayedexpansion
 
 
 :: Obtener la ruta base del script
-set "PATH=%~dp0"
-set "PGSQL_PATH=%PATH%\psql"
-set "WEB_PATH=%PATH%\CocaCola"
+set "BASE_PATH=%~dp0"
+set "PGSQL_PATH=%BASE_PATH%\pgsql"
+set "WEB_PATH=%BASE_PATH%\proyecto"
+
+
+:: Agregar Python al PATH si no está configurado globalmente
+set "PYTHON_EXEC=%BASE_PATH%\python\python-3.12.4.amd64\python.exe"
+
 
 :: Configurar entorno virtual
 set "VENV_PATH=%WEB_PATH%\entorno\Scripts\activate"
 if not exist "%VENV_PATH%" (
     echo Creando entorno virtual...
-    python -m venv "%WEB_PATH%\entorno"
+    "%PYTHON_EXEC%" -m venv "%WEB_PATH%\entorno"
     
     if exist "%VENV_PATH%" (
         echo Instalando dependencias...

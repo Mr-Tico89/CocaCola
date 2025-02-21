@@ -8,12 +8,10 @@ en el **taller de mantención de Coca-Cola Embonor**, ofreciendo una **solución
 
 ## Requisitos 
 El proyecto utiliza los siguientes lenguajes: 
-- Python 3.12 +
+- Python 3.12.4 +
 - PostgreSQL 16.1 +
 
-El disco duro ya viene con postgreSQL, solo tedra que instalar python desde la microsoft store. Ademas existe un archivo nombrado requirements.txt, el cual contiene todas las librerias 
-utilizadas, no tiene que instalarlas, el archivo iniciar.bat se encargara de instalarlas si no 
-las tiene. 
+El disco duro ya viene con postgreSQL y python. Ademas existe un archivo nombrado requirements.txt, el cual contiene todas las librerias utilizadas, no tiene que instalarlas, el archivo iniciar.bat se encargara de instalarlas si no las tiene. 
 
 > [!WARNING]
 > La Base de datos no viene incluida, consulte para mas detalle
@@ -26,7 +24,7 @@ las tiene.
 ## Instrucciones para iniciar la pagina
 Sigue estos pasos para iniciar el proyecto:
 
-1. Dentro de la carpeta AppWeb existe el archivo iniciar.bat, abralo y se abrira un terminal.
+1. Dentro de la carpeta paginaWeb existe el archivo iniciar.bat, abralo y se abrira un terminal.
 
 2. Si es la primera vez que lo iniciar, comenzara a descargar las librerias e instalarlas en 
 el entorno virtual.

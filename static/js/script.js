@@ -1135,7 +1135,10 @@ function updateIndData(indData, minutosAverias, minutosOEE, metrics, avg) {
 
 //descargas el archivo powerBI de la carpeta del proyecto
 function cargarPowerBI() {
-    window.location.href = "/descargar-powerbi"; // Redirige a la descarga
+    fetch('/powerbi')
+    .then(response => response.json())
+    .then(data => console.log(data.mensaje || data.error))
+    .catch(error => console.error('Error:', error));
 }
 
 
