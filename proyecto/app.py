@@ -22,7 +22,7 @@ CORS(app)  # Permitir solo tu dominio
 
 
 # Configuración de la carpeta de subida
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'proyecto/uploads'
 ALLOWED_EXTENSIONS = {'csv'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -540,7 +540,7 @@ def save():
 #funcion para descargar planilla.pbix del drive 
 @app.route('/powerbi', methods=['GET'])
 def cargar_powerbi():
-    ruta_archivo = os.path.abspath("files/planilla.pbix")  # Ruta completa del archivo
+    ruta_archivo = os.path.abspath("proyecto/files/planilla.pbix")  # Ruta completa del archivo
     try:
         os.startfile(ruta_archivo)  # Abre el archivo en la app predeterminada (Power BI)
         return jsonify({"mensaje": "Archivo abierto en Power BI"})
