@@ -34,18 +34,17 @@ el entorno virtual.
 
 
 3. Una vez ya instalado todo comenzara la aplicacion, se abrirar otra terminal y debiese 
-aparece algo del estilo:
+aparece algo del estilo, en la penultima linea:
 
     ```bash
-    Running on http://XXX.XXX.XXXX:8000
+    Aplicacion iniciada en: http://localhost:8000
     ```
 
-4. Copie ese link con `Ctrl + C`(**Cuidado** que con `Ctrl + C` tambien puede cerrar la app),
+4. Copie ese link con `Ctrl + C` (**Cuidado** que con `Ctrl + C` tambien puede cerrar la app),
 luego peguelo en el su navegador preferido. Asi podra usar la aplicacion si gusta puede guardar
 un acceso directo.
 
-5. Para cerrar la aplicacion puede salir de la terminal o puede apretar `Ctrl + C` para luego 
-confirmar si quiere cerrar.
+5. Para cerrar bien la aplicacion, debe apretar `Ctrl + C`
 
 
 ## Instrucciones para usar la pagina
@@ -66,9 +65,8 @@ con estos parametros antes
 5. **"Subir Datos"**: Como su nombre indica sirve para subir los archivos CSV de shoplogix a
 la base de datos
 
-6. **"Graficos"**: Esta pestaña permite descargar el archivo planilla.pbix para usarlo en 
-powerBI, este archivo ya posee algunos graficos por defecto, si desea modificarlos puede 
-hacerlo directamente en paginaWeb/cocacola/files
+6. **"Graficos"**: Esta pestaña permite abrir el archivo planilla.pbix, este archivo ya posee 
+algunos graficos por defecto, si desea modificarlos puede hacerlo recuerde que debe guardar los cambios
 
 7. **"Avisos Turno"**: WIP
 
