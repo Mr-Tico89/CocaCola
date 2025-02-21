@@ -1133,30 +1133,9 @@ function updateIndData(indData, minutosAverias, minutosOEE, metrics, avg) {
 }
 
 
-//descargas el archivo powerBI de google drive
+//descargas el archivo powerBI de la carpeta del proyecto
 function cargarPowerBI() {
-    fetch('/cargar-powerbi', {
-        method: 'POST',
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.blob(); // Recibe el archivo como un blob
-    })
-    .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = 'planilla.pbix'; // Nombre del archivo descargado
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-    })
-    .catch(error => {
-        console.error('Error al descargar el archivo:', error);
-    });
+    window.location.href = "/descargar-powerbi"; // Redirige a la descarga
 }
 
 

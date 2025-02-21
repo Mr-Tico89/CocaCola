@@ -538,18 +538,16 @@ def save():
 
 
 # Ruta del archivo en la carpeta del proyecto
-FILE_PATH = os.path.join(os.getcwd(), "files", "planilla.pbix")
-
+FILE = os.path.join(os.getcwd(), "files", "planilla.pbix")
+print(FILE)
 
 #funcion para descargar planilla.pbix del drive 
-@app.route('/cargar-powerbi', methods=['POST'])
+@app.route('/descargar-powerbi', methods=['GET'])
 def cargar_powerbi():
     try:
-        if not os.path.exists(FILE_PATH):
-            return jsonify({"mensaje": "El archivo no existe en el servidor"}), 404
-
-        # Enviar el archivo al cliente para su descarga
-        return send_file(FILE_PATH, as_attachment=True, download_name="planilla.pbix")
+        carpeta = os.path.join(os.getcwd(), "files")  # Asegúrate de que 'files' es la carpeta correcta
+        nombre_archivo = "planilla.pbix"
+        return send_from_directory(carpeta, nombre_archivo, as_attachment=True)
 
     except Exception as e:
         print(f"Error: {e}")
