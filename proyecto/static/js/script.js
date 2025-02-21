@@ -43,17 +43,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Llamar a loadTableOptions cuando la página se carga
     loadTableOptions();
 
-    // Agregar eventos a los filtros
-    document.querySelectorAll('.filter-select').forEach(select => {
-        select.addEventListener('change', (event) => {
-            const selectId = event.target.id.replace('filter-', ''); // ID del select
-            const value = Array.from(event.target.selectedOptions).map(option => option.value); // Valores seleccionados
-            console.log (value)
-            updateSelectedFilters(selectId, value);
-        });
-    });
-
-
     // Agregar eventos a los botones de pestañas
     document.querySelectorAll('.tablinks').forEach(button => {
         button.addEventListener('click', (event) => {
@@ -71,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     break;
 
                 case 'Tab4':
-                    loadTableData('Indicador-container', 'Tab4', 'INDICADOR_SEMANAL', true);
+                    loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
                     loadAndPopulateFilters()
                     break;
             }
@@ -86,14 +75,16 @@ document.addEventListener('DOMContentLoaded', function () {
             tableContainer.innerHTML = '<p>Actualizando datos...</p>';
     
             // Ejecutar los filtros y cálculos
-            const data = await applyFiltersAndCalculate();
+            const data = await applyFiltersAndCalculate(); //ver q ondis pq falla
             // Guardar los datos procesados
             await saveData(data);
 
             // Llamada a la función
             // Verificar si selectedFilters.año y selectedFilters.semana tienen longitud 1
-            if (selectedFilters.año.length === 1 && selectedFilters.semana.length === 1 && selectedFilters.areas.length >= 2 ) {
-                const result = CreateJsonInd(data, selectedFilters.areas.includes("Paros Menores"));
+            if (globalActiveFilters.año.size >= 1 && globalActiveFilters.mes.size >= 1 && 
+                globalActiveFilters.semana.size >= 1 && globalActiveFilters.areas.size >= 2
+            ) {
+                const result = CreateJsonInd(data, globalActiveFilters.areas.has("Paros Menores")); //ver q ondis pqq falla
                 await saveData(result);
             }
 
@@ -226,76 +217,103 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
     }
 }
 
+
+
+
+// Función madre para crear el boton de filtros y menu desplegable
+async function createFilterSelect(filterName, column, tableName, containerId) {
+    // Crear el contenedor para el filtro
+    
+    const { container, dropdownMenu } = createDropdownFilter(filterName, column);
+
+    if (!(containerId == "Indicador-container")){
+        // Obtener valores únicos desde el backend
+        const uniqueValues = await fetchUniqueValues(column, tableName);  
+
+        // Agregar los checkboxes y los valores únicos obtenidos al dropdownMenu
+        addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId);
+    }
+    return container;
+}
+
+
 // crea el menu desplegable
-function createDropdownFilter(column, tableName, containerId) {
+function createDropdownFilter(filterName, column) {
     // Crear el contenedor principal del filtro
     const container = document.createElement('div');
-    container.classList.add('filter-container');
-
+    container.classList.add(`${filterName}-container`);
+    
     // Crear el botón desplegable
     const dropdownButton = document.createElement('button');
-    dropdownButton.textContent = 'V';
-    dropdownButton.classList.add('dropdown-button');
+    if (filterName === "dropdown") {
+        dropdownButton.textContent = '▼';  // Mejor icono visual
+    } else {
+        dropdownButton.textContent = column;
+    }
+    
+    dropdownButton.classList.add(`${filterName}-button`);
+    dropdownButton.setAttribute('aria-expanded', 'false'); // Accesibilidad
 
     // Crear el menú desplegable
     const dropdownMenu = document.createElement('div');
-    dropdownMenu.classList.add('dropdown-menu');
+    dropdownMenu.classList.add(`${filterName}-menu`);
+    dropdownMenu.setAttribute('role', 'menu');
 
-    // Botón para borrar filtros
-    const clearButton = document.createElement('button');
-    clearButton.textContent = 'Borrar filtros';
-    clearButton.classList.add('clear-filters-button');
-    clearButton.addEventListener('click', (event) => {
+    let closeTimeout; // Variable para manejar el tiempo de cierre
+
+    // Manejar la apertura y cierre del menú
+    function toggleDropdown(event) {
         event.stopPropagation();
-        
-        dropdownMenu.querySelectorAll('input:checked').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        
-        if (globalActiveFilters[column]) {
-            globalActiveFilters[column].clear();
+        const isOpen = dropdownMenu.classList.toggle('show');
+        dropdownButton.setAttribute('aria-expanded', isOpen.toString());
+    }
+
+    function closeDropdown() {
+        dropdownMenu.classList.remove('show');
+        dropdownButton.setAttribute('aria-expanded', 'false');
+    }
+
+    dropdownButton.addEventListener('click', toggleDropdown);
+
+    // Cerrar el menú al hacer clic fuera de él
+    document.addEventListener('click', (event) => {
+        if (!container.contains(event.target)) {
+            closeDropdown();
         }
-        fetchFilteredData(tableName, containerId);
     });
 
-    dropdownMenu.appendChild(clearButton);
-
-
-    // Manejo dinámico de los menús desplegables
-    dropdownMenu.querySelectorAll('dropdown-menu').forEach(menu => {
-        menu.addEventListener('mouseover', () => {
-            const rect = menu.getBoundingClientRect();
-            // Si el menú se desborda por el lado derecho, ajusta su posición
-            if (rect.right > window.innerWidth) {
-                menu.classList.add('adjust-left'); // Agrega clase para ajustarlo hacia la izquierda
-            } else {
-                menu.classList.remove('adjust-left'); // Quita la clase si ya no se desborda
-            }
-        });
+    // Cerrar el menú con la tecla Esc
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeDropdown();
+        }
     });
 
-
-
-
-
-
-    // Manejar eventos para mostrar/ocultar el menú
-    dropdownButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        dropdownMenu.classList.toggle('show');
+    // Ajustar la posición si el menú se desborda
+    dropdownMenu.addEventListener('mouseover', () => {
+        const rect = dropdownMenu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            dropdownMenu.classList.add('adjust-left');
+        } else {
+            dropdownMenu.classList.remove('adjust-left');
+        }
     });
 
-    let closeTimeout;
+    // Cerrar el menú si el mouse sale del contenedor después de 300ms
     dropdownMenu.addEventListener('mouseleave', () => {
-        closeTimeout = setTimeout(() => dropdownMenu.classList.remove('show'), 100);
+        closeTimeout = setTimeout(closeDropdown, 200);
     });
-    dropdownMenu.addEventListener('mouseenter', () => clearTimeout(closeTimeout));
 
-    // Añadir el botón y el menú al contenedor
+    // Si el usuario vuelve a entrar, cancelar el cierre
+    dropdownMenu.addEventListener('mouseenter', () => {
+        clearTimeout(closeTimeout);
+    });
+
+    // Añadir los elementos al contenedor
     container.appendChild(dropdownButton);
     container.appendChild(dropdownMenu);
 
-    // Retornar un objeto con los elementos clave
+    // Retornar el contenedor y el menú para su manipulación posterior
     return { container, dropdownMenu };
 }
 
@@ -306,13 +324,11 @@ async function fetchUniqueValues(column, tableName) {
 
     // Convertir los filtros de globalActiveFilters a un formato adecuado
     Object.keys(globalActiveFilters).forEach(column => {
-
         // Si el Set no está vacío, lo convertimos a array
         if (globalActiveFilters[column].size > 0) {
             filters[column] = Array.from(globalActiveFilters[column]).join(',');
         }
     });
-
     // Construir la cadena de parámetros de consulta con los filtros
     const queryString = new URLSearchParams(filters).toString();
 
@@ -322,7 +338,6 @@ async function fetchUniqueValues(column, tableName) {
     try {
         const response = await fetch(url);
         const uniqueData = await response.json();
-        
         return uniqueData[column] || [];  // Retorna los valores únicos de la columna solicitada
     } catch (error) {
         console.error("Error obteniendo valores únicos:", error);
@@ -331,26 +346,13 @@ async function fetchUniqueValues(column, tableName) {
 }
 
 
-// Función madre para crear el boton de filtros y menu desplegable
-async function createFilterSelect(column, tableName, containerId) {
-    // Crear el contenedor para el filtro
-    const { container, dropdownMenu } = createDropdownFilter(column, tableName, containerId);
-
-    // Obtener valores únicos desde el backend
-    const uniqueValues = await fetchUniqueValues(column, tableName);  
-
-    // Agregar los checkboxes para los valores únicos obtenidos
-    addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, containerId);
-
-    return { container, activeFilters: globalActiveFilters };
-}
-
-
 // Función auxiliar para agregar los checkboxes al menú desplegable, cada vez que se activa uno activa fetchFilteredData
-function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, containerId) {
+function addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId) {
+    createClearFiltersButton(dropdownMenu, column, containerId, tableName);
+
     uniqueValues.forEach(value => {
         const checkboxContainer = document.createElement('label');
-        checkboxContainer.classList.add('dropdown-item');
+        checkboxContainer.classList.add(`${filterName}-item`);
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
@@ -359,11 +361,13 @@ function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, 
         const label = document.createElement('span');
         label.textContent = value;
 
+        
         // Asegurar que globalActiveFilters esté inicializado
         if (!globalActiveFilters[column]) {
             globalActiveFilters[column] = new Set();  // Inicializar como un conjunto vacío
         }
-
+        
+        
         // Verificar si el valor está en globalActiveFilters y marcar el checkbox
         if (globalActiveFilters[column].has(String(value))) {
             checkbox.checked = true;  // Si está en globalActiveFilters, marcar el checkbox
@@ -371,18 +375,68 @@ function addCheckboxesToDropdown(uniqueValues, column, dropdownMenu, tableName, 
 
         // Manejar cambio en el estado del checkbox
         checkbox.addEventListener('change', () => {
+
+            // Actualizamos el filtro según si el checkbox está marcado o no
             if (checkbox.checked) {
                 globalActiveFilters[column].add(String(value));
             } else {
                 globalActiveFilters[column].delete(String(value));
             }
-            fetchFilteredData(tableName, containerId);
+
+            // Si el containerId no contiene "filter", obtenemos los datos filtrados
+            if (!containerId.includes("filter")) {
+                fetchFilteredData(tableName, containerId);
+            } else {
+                // Si el containerId contiene "filter", mostramos el mensaje en consola
+                const columms = ['año', 'mes', 'semana']
+                columms.forEach(colummn => {
+                    if (!(column == colummn)) {
+                        addFilterToTable(colummn)
+                    }   
+                });
+            }
         });
 
         checkboxContainer.appendChild(checkbox);
         checkboxContainer.appendChild(label);
         dropdownMenu.appendChild(checkboxContainer);
     });
+}
+
+
+function createClearFiltersButton(dropdownMenu, column, containerId, tableName) {
+    const clearButton = document.createElement('button');
+    clearButton.textContent = 'Borrar filtros';
+    clearButton.classList.add('clear-filters-button');
+    
+    clearButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        
+        // Desmarcar todos los checkboxes dentro del menú desplegable
+        dropdownMenu.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Limpiar los filtros activos de la columna si existen
+        if (globalActiveFilters[column]) {
+            globalActiveFilters[column].clear();
+        }
+        
+        // Verificar si el containerId no contiene "filter"
+        if (!containerId.includes("filter")) {
+            fetchFilteredData(tableName, containerId);
+        } else {
+            // Si el containerId contiene "filter", mostramos el mensaje en consola
+            const columms = ['año', 'mes', 'semana']
+            columms.forEach(colummn => {
+                if (!(column == colummn)) {
+                    addFilterToTable(colummn)
+                }
+            });  
+        }
+    });
+    
+    dropdownMenu.appendChild(clearButton);
 }
 
 
@@ -415,6 +469,7 @@ async function fetchFilteredData(tableName, containerId) {
 
         const filteredData = await response.json();
         //quizas hacer un if para implementarlo en ind_sem no se
+        
         renderEditableTable(filteredData, containerId)
         
     } catch (error) {
@@ -473,7 +528,6 @@ function changePage(current_page, total_pages, tableName, direction, containerId
 
     // Limita el rango entre 1 y totalPages
     if (current_page >= 1 && current_page <= total_pages) {
-        console.log(current_page)
         fetchTablePage(tableName, current_page, containerId);
     }
     else {
@@ -485,7 +539,7 @@ function changePage(current_page, total_pages, tableName, direction, containerId
 //funcion auxiliar para generar nueva pagina
 function fetchTablePage(tableName, page, containerId) {
     const filters = {};
-
+    
     // Construir filtros activos
     for (const column in globalActiveFilters) {
         if (globalActiveFilters[column]?.size > 0) {
@@ -568,12 +622,8 @@ function renderEditableTable(response, containerId) {
     const table = createTableElement('editable-table');
 
 
-    // Contenedor para los filtros activos globales
-    const globalActiveFilters = {};
-
-
     // Crear encabezados con filtros
-    const thead = createTableHeader(columns, containerId, globalActiveFilters, table_name);
+    const thead = createTableHeader(columns, containerId, table_name);
 
 
     // Crear cuerpo de la tabla
@@ -598,7 +648,7 @@ function createTableElement(className) {
 
 
 //crear el encabezado de la tabla
-function createTableHeader(columns, containerId, globalActiveFilters, tableName) {
+function createTableHeader(columns, containerId, tableName) {
     const thead = document.createElement('thead');
     thead.classList.add('editable-table-header');
     const headerRow = thead.insertRow();
@@ -613,12 +663,12 @@ function createTableHeader(columns, containerId, globalActiveFilters, tableName)
 
     columns.forEach(column => {
         const th = createHeaderCell(
-            column.replace(/_/g, ' ').charAt(0).toUpperCase() + column.replace(/_/g, ' ').slice(1)
+            column.replace(/_/g, ' ').charAt(0).toUpperCase() + column.replace(/_/g, ' ').slice(1) //deja bonito el titulo de la columna
         );
 
         // Crear filtro para cada columna
-        createFilterSelect(column, tableName, containerId).then(({ container, activeFilters }) => {
-            globalActiveFilters[column] = activeFilters; // Guardar referencia a filtros activos
+        createFilterSelect('dropdown', column, tableName, containerId)
+        .then(container => {
             th.appendChild(container);  // Añadir el contenedor del filtro al encabezado de la columna
         });
 
@@ -809,51 +859,6 @@ async function saveData(data) {
 }
 
 
-// para llenar los filtros de ind semanal 
-function populateUniqueSelect(selectId) {
-    const select = document.getElementById(selectId);
-    // Verificar si el select existe
-    if (!select) {
-        console.error(`No se encontró el elemento con ID: ${selectId}`);
-        return;
-    }
-
-    let cleanedselectId = selectId.slice(7); //elimina filter- de selectId en el html
-
-    // Extraer valores únicos de la tabla para este caso sirve que solo se fije en db_averias_consolidado
-    fetchUniqueValues(cleanedselectId, "db_averias_consolidado")
-    .then((uniqueValues) => {
-        // Limpiar las opciones previas antes de agregar nuevas
-        select.innerHTML = '';
-
-        // Agregar el atributo multiple si no existe
-        select.setAttribute('multiple', 'true');
-
-        // Agregar las nuevas opciones al select
-        uniqueValues.forEach(value => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = value;
-            select.appendChild(option);
-        });
-
-        select.addEventListener('change', () => {
-            // Obtener los valores seleccionados
-            //const selectedValues = Array.from(select.selectedOptions).map(option => option.value);
-            //console.log(selectedValues);  // Muestra el array con los valores seleccionados
-
-            // funcion para aplicar filtro y cambiar valores unicos de las otros selects WIP
-            //FilteredDataIndSem(tableName, containerId);
-        });
-      })
-
-      .catch((error) => {
-        // Manejar errores en caso de que algo falle
-        console.error("Error al obtener los valores únicos:", error);
-    });
-}
-
-
 // Función para actualizar los filtros seleccionados en indicador semanal
 function updateSelectedFilters(selectId, value) {
     if (value.length > 0) {
@@ -864,13 +869,36 @@ function updateSelectedFilters(selectId, value) {
 }
 
 
+async function addFilterToTable(filter) {
+    const thead = document.createElement('thead');
+    thead.classList.add('editable-filter-header'); //cambiarlo para personalizarlo CSS
+    const headerRow = thead.insertRow();
+    const th = createHeaderCell();
+
+    await createFilterSelect('filter', filter, 'db_averias_consolidado', `filter-${filter}`)
+    .then(container => {
+        th.appendChild(container);
+
+        // Agregarlo también al div con id="filter-año"
+
+        const filterDiv = document.getElementById(`filter-${filter}`);
+        filterDiv.innerHTML = '';
+        if (filterDiv) {
+            filterDiv.appendChild(container);
+        }   
+    });
+
+    headerRow.appendChild(th);
+}
+
+
 //func main para rellenar los 4 fitros 
 async function loadAndPopulateFilters() {
-    // Llenar los filtros con los datos obtenidos
-    populateUniqueSelect('filter-año'); // Filtro Año
-    populateUniqueSelect('filter-mes'); // Filtro Mes
-    populateUniqueSelect('filter-semana'); // Filtro Semana
-    populateUniqueSelect('filter-areas'); // Filtro Semana
+    addFilterToTable('año')
+    addFilterToTable('mes')
+    addFilterToTable('semana')
+    addFilterToTable('areas')
+
 }
 
 
@@ -879,8 +907,19 @@ async function loadFullTableData(tableName = null) {
     const table = tableName || document.getElementById('table-select').value;
     if (!table) return;
 
+    const filters = {};
+    // Construir filtros activos
+    for (const column in globalActiveFilters) {
+        if (globalActiveFilters[column]?.size > 0) {
+            filters[column] = [...globalActiveFilters[column]].join(',');
+        }
+    }
+
+    // Construir URL con parámetros de filtros
+    const queryString = new URLSearchParams(filters).toString();
     try {
-        const response = await fetch(`/tables/${table}/data`);
+        const url = `/tables/${table}/data?${queryString}`;
+        const response = await fetch(url)
         const data = await response.json();
         return data;
     } catch (error) {
@@ -900,25 +939,6 @@ function applyFiltersAndCalculate() {
         if (!averiasData || !averiasData.data || !oeeData || !oeeData.data) {
             throw new Error("Los datos de las tablas no son válidos.");
         }
-
-        // Filtrar los datos según los filtros seleccionados db_averias_consolidado
-        const filteredAverias = averiasData.data.filter(row => {
-            return Object.entries(selectedFilters).every(([key, values]) => {
-                const rowValue = String(row[key] || ""); // Asegurarse de que el valor sea una cadena
-                return values.includes(rowValue);
-            });
-        });
-
-        // Filtrar los datos según los filtros seleccionados OEE
-        const filteredOEE = oeeData.data.filter(row => {
-            return Object.entries(selectedFilters).every(([key, values]) => {
-                // Ignorar el filtro de "area" para esta tabla
-                if (key === 'areas') return true;
-                const rowValue = String(row[key] || ""); // Asegurarse de que el valor sea una cadena
-                return values.includes(rowValue);
-            });
-        });
-
         // Inicializar objetos de minutos para cada tabla
         let minutosAverias = { 
             minutos: { L1: 0, L2: 0, L3: 0, L4: 0, PLANTA: 0 },
@@ -940,12 +960,11 @@ function applyFiltersAndCalculate() {
         };
 
         // Calcular minutos para ambas tablas usando la función auxiliar con los campos específicos
-        minutosAverias = calculateTotalMinutesById(filteredAverias, minutosAverias, 'id', 'minutos');
-        minutosOEE = calculateTotalMinutesById(filteredOEE, minutosOEE, 'linea', 'min');
+        minutosAverias = calculateTotalMinutesById(averiasData, minutosAverias, 'id', 'minutos');
+        minutosOEE = calculateTotalMinutesById(oeeData, minutosOEE, 'linea', 'min');
         metrics = calculateMetrics(minutosAverias, minutosOEE, metrics);
-        const avg = calculateOEEAverage(filteredOEE)
+        const avg = calculateOEEAverage(oeeData.data)
         updateIndData(indData, minutosAverias, minutosOEE, metrics, avg);
-
         // Devolver los datos procesados
         return indData;
     })
@@ -958,13 +977,19 @@ function applyFiltersAndCalculate() {
 
 // Función auxiliar para calcular los minutos por ID o Línea
 function calculateTotalMinutesById(filteredData, minutosAverias, idField, valueField) {
-    filteredData.forEach(row => {
+    filteredData.data.forEach(row => {
         const id = row[idField]; // Campo usado como clave (ej. "id" o "linea")
         const value = parseFloat(row[valueField]); // Campo usado para sumar (ej. "minutos" o "min")
 
         if (!id || isNaN(value)) {
             console.warn(`Fila ignorada: ${idField}="${id}", ${valueField}="${row[valueField]}"`);
             return; // Ignorar filas sin clave o sin valor válido
+        }
+
+        // Inicializar si no existe la clave
+        if (!minutosAverias.minutos[id]) {
+            minutosAverias.minutos[id] = 0;
+            minutosAverias.countMin[id] = 0;
         }
 
         // Sumar los valores del campo especificado
@@ -1108,30 +1133,12 @@ function updateIndData(indData, minutosAverias, minutosOEE, metrics, avg) {
 }
 
 
-//descargas el archivo powerBI de google drive
+//descargas el archivo powerBI de la carpeta del proyecto
 function cargarPowerBI() {
-    fetch('/cargar-powerbi', {
-        method: 'POST',
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.blob(); // Recibe el archivo como un blob
-    })
-    .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = 'planilla.pbix'; // Nombre del archivo descargado
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-    })
-    .catch(error => {
-        console.error('Error al descargar el archivo:', error);
-    });
+    fetch('/powerbi')
+    .then(response => response.json())
+    .then(data => console.log(data.mensaje || data.error))
+    .catch(error => console.error('Error:', error));
 }
 
 
@@ -1139,8 +1146,8 @@ function cargarPowerBI() {
 function CreateJsonInd(jsonData, boolean) {
     const newColumns = ["id", "año", "semana", "disp", "meta", "mtbf", "mttr", "averias", "minutos", "oee", "parosmenores"];
     const ParosMenores = boolean
-    const año = selectedFilters.año[0]; // Obtener el año desde selectedFilters
-    const semana = selectedFilters.semana[0]; // Obtener la semana desde selectedFilters
+    const año = selectedFilters.año; // Obtener el año desde selectedFilters
+    const semana = selectedFilters.semana; // Obtener la semana desde selectedFilters
     const resultado = {
         columns: newColumns,
         data: jsonData.data
@@ -1149,17 +1156,17 @@ function CreateJsonInd(jsonData, boolean) {
                 id: item.total_general, // Renombrar total_general a id
                 año: año,
                 semana: semana,
-                disp: parseFloat(item.disp.replace('%', '')) / 100 || 0, // Convertir porcentaje a decimal
-                mtbf: parseFloat(item.mtbf) || 0,
-                mttr: parseFloat(item.mttr) || 0,
-                averias: parseInt(item.averias) || 0,
-                minutos: parseInt(item.minutos) || 0,
-                oee: parseFloat(item.oee.replace('%', '')) / 100 || 0,
+                disp: item.disp ? parseFloat(item.disp.replace('%', '')) / 100 : 0, // Convertir porcentaje a decimal
+                mtbf: item.mtbf ? parseFloat(item.mtbf) : 0,
+                mttr: item.mttr ? parseFloat(item.mttr) : 0,
+                averias: item.averias ? parseInt(item.averias) : 0,
+                minutos: item.minutos ? parseInt(item.minutos) : 0,
                 parosmenores: ParosMenores,  
             })),
         table_name: "indicador_semanal_historico"
     };
-    return resultado
+
+    return resultado;
 }
 
 

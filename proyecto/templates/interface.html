@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 
     <!-- Pensar un titlo bueno WIP -->
     <title>1ra pagina web</title>
@@ -20,6 +21,7 @@
         <button class="tablinks" onclick="openTab(event, 'Tab4')">Indicador Semanal</button>
         <button class="tablinks" onclick="openTab(event, 'Tab5')">Subir Datos</button>
         <button class="tablinks" onclick="openTab(event, 'Tab6')">Graficos</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab7')">Avisos Turno</button>
         
     </div>
 
@@ -81,26 +83,21 @@
 
 
     <div id="Tab4" class="tabcontent">
+        <label for="filterSelect" class="styled-label">Filtrar por categoría:</label>
 
         <div class="select-button-container">
 
-            <label for="filterSelect" class="styled-label">Filtrar por categoría:</label>
+            <label class="styled-Advice"> 
+                <span style="color: red;"><strong>IMPORTANTE: </strong></span>
+                Si quiere actualizar la tabla indicadores semanales, debe tener selecionado
+                un filtro por cada categoria
+            </label>
 
-                <select id="filter-año" class="filter-select" multiple="multiple">
-                    <option value=""></option>
-                </select>
-                
-                <select id="filter-mes" class="filter-select" multiple="multiple">
-                    <option value=""></option>
-                </select>
+                <div id="filter-año"> </div>
+                <div id="filter-mes"> </div>
+                <div id="filter-semana"> </div>
+                <div id="filter-areas"> </div>
 
-                <select id="filter-semana" class="filter-select" multiple="multiple"> 
-                    <option value=""></option>
-                </select>
-
-                <select id="filter-areas" class="filter-select" multiple="multiple">
-                    <option value=""></option>
-                </select>
 
             <button id="Gen-button" class="extra-button">Generar Datos</button>
 
@@ -115,8 +112,9 @@
         <div class="select-button-container">
             <label class="styled-Advice"> 
                 <span style="color: red;"><strong>IMPORTANTE: </strong></span>
-                SOLO se aceptan los datos crudos, idealmente que contengan estos
-                nombres los archivos (DATASHEEETFALLASSEMANALES... y OEEYDISPONIBILIDAD...)</label>
+                SOLO se aceptan los datos originales, idealmente que contengan estos
+                nombres los archivos (DATASHEEETFALLASSEMANALES... y OEEYDISPONIBILIDAD...)
+            </label>
         </div>
         <div class="select-button-container">
 
@@ -135,11 +133,33 @@
     <div id="Tab6" class="tabcontent">
 
         <div class="select-button-container">
+            
+            <label class="styled-Advice"> 
+                <span style="color: red;"><strong>IMPORTANTE: </strong></span>
+                Recuerde primero debe actualizar el archivo en power bi
+            </label>
+
+        </div>
+
+        <div class="select-button-container">
             <button onclick="cargarPowerBI()" class="extra-button">Descargar Datos y abrir power BI</button>
         </div>
     
     </div>
 
+    
+    <div id="Tab7" class="tabcontent">
+
+        <div class="select-button-container">
+            
+            <label class="styled-Advice"> 
+                <span style="color: red;"><strong>IMPORTANTE: </strong></span>
+                Estamos trabajando para usted ᕙ(⇀‸↼‶)ᕗ
+            </label>
+
+        </div>
+    
+    </div>
 
     <button id="scrollToTopBtn" onclick="scrollToTop()">Subir</button>
 

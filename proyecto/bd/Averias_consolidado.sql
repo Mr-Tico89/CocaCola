@@ -84,7 +84,7 @@ BEGIN
             ELSE NEW.Machine_Name
         END,
         -- Obtener el mes en formato abreviado
-        TO_CHAR(NEW.Days_in_Calendar_DateTime, 'Mon'),
+        TO_CHAR(NEW.Days_in_Calendar_DateTime, 'mon'),
         -- Calcular la semana del año
         EXTRACT(WEEK FROM NEW.Days_in_Calendar_DateTime),
         -- Usar la fecha original
@@ -183,3 +183,7 @@ DROP TRIGGER IF EXISTS
 SELECT indexname, tablename
 FROM pg_indexes
 WHERE tablename = 'db_averias_consolidado';
+
+
+
+
