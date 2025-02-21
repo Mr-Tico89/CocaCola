@@ -33,14 +33,13 @@ el entorno virtual.
 > Puede tardar un par de minutos
 
 
-3. Una vez ya instalado todo comenzara la aplicacion, se abrirar otra terminal y debiese 
-aparece algo del estilo, en la penultima linea:
+3. Una vez ya instalado todo comenzara la aplicacion, debiese aparece algo del estilo, en la penultima linea:
 
     ```bash
     Aplicacion iniciada en: http://localhost:8000
     ```
 
-4. Copie ese link con `Ctrl + C` (**Cuidado** que con `Ctrl + C` tambien puede cerrar la app),
+4. Automaticamente se abrira la pagina web en su navegador predeterminado, si gusta tambien puede copiar ese link con `Ctrl + C` (**Cuidado** que con `Ctrl + C` tambien puede cerrar la app),
 luego peguelo en el su navegador preferido. Asi podra usar la aplicacion si gusta puede guardar
 un acceso directo.
 
