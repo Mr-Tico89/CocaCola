@@ -43,17 +43,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Llamar a loadTableOptions cuando la página se carga
     loadTableOptions();
 
-    // Agregar eventos a los filtros
-    document.querySelectorAll('.filter-select').forEach(select => {
-        console.log("hola toi en uso")
-        select.addEventListener('change', (event) => {
-            const selectId = event.target.id.replace('filter-', ''); // ID del select
-            const value = Array.from(event.target.selectedOptions).map(option => option.value); // Valores seleccionados
-            updateSelectedFilters(selectId, value);
-        });
-    });
-
-
     // Agregar eventos a los botones de pestañas
     document.querySelectorAll('.tablinks').forEach(button => {
         button.addEventListener('click', (event) => {
@@ -71,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     break;
 
                 case 'Tab4':
-                    loadTableData('Indicador-container', 'Tab4', 'INDICADOR_SEMANAL', true);
+                    loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
                     loadAndPopulateFilters()
                     break;
             }
@@ -229,6 +218,25 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
 }
 
 
+
+
+// Función madre para crear el boton de filtros y menu desplegable
+async function createFilterSelect(filterName, column, tableName, containerId) {
+    // Crear el contenedor para el filtro
+    
+    const { container, dropdownMenu } = createDropdownFilter(filterName, column);
+
+    if (!(containerId == "Indicador-container")){
+        // Obtener valores únicos desde el backend
+        const uniqueValues = await fetchUniqueValues(column, tableName);  
+
+        // Agregar los checkboxes y los valores únicos obtenidos al dropdownMenu
+        addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId);
+    }
+    return container;
+}
+
+
 // crea el menu desplegable
 function createDropdownFilter(filterName, column) {
     // Crear el contenedor principal del filtro
@@ -338,23 +346,6 @@ async function fetchUniqueValues(column, tableName) {
 }
 
 
-// Función madre para crear el boton de filtros y menu desplegable
-async function createFilterSelect(filterName, column, tableName, containerId) {
-    // Crear el contenedor para el filtro
-    
-    const { container, dropdownMenu } = createDropdownFilter(filterName, column);
-
-    if (!(containerId == "Indicador-container")){
-        // Obtener valores únicos desde el backend
-        const uniqueValues = await fetchUniqueValues(column, tableName);  
-
-        // Agregar los checkboxes y los valores únicos obtenidos al dropdownMenu
-        addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId);
-    }
-    return container;
-}
-
-
 // Función auxiliar para agregar los checkboxes al menú desplegable, cada vez que se activa uno activa fetchFilteredData
 function addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId) {
     createClearFiltersButton(dropdownMenu, column, containerId, tableName);
@@ -447,7 +438,6 @@ function createClearFiltersButton(dropdownMenu, column, containerId, tableName) 
     
     dropdownMenu.appendChild(clearButton);
 }
-
 
 
 //funcion para actualizar la tabla con los valores unicos (filtros dinamicos), implementarlos a ind_sem WIP
@@ -879,7 +869,6 @@ function updateSelectedFilters(selectId, value) {
 }
 
 
-
 async function addFilterToTable(filter) {
     const thead = document.createElement('thead');
     thead.classList.add('editable-filter-header'); //cambiarlo para personalizarlo CSS
@@ -901,6 +890,7 @@ async function addFilterToTable(filter) {
 
     headerRow.appendChild(th);
 }
+
 
 //func main para rellenar los 4 fitros 
 async function loadAndPopulateFilters() {

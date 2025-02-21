@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 
     <!-- Pensar un titlo bueno WIP -->
     <title>1ra pagina web</title>
@@ -20,6 +21,7 @@
         <button class="tablinks" onclick="openTab(event, 'Tab4')">Indicador Semanal</button>
         <button class="tablinks" onclick="openTab(event, 'Tab5')">Subir Datos</button>
         <button class="tablinks" onclick="openTab(event, 'Tab6')">Graficos</button>
+        <button class="tablinks" onclick="openTab(event, 'Tab7')">Avisos Turno</button>
         
     </div>
 
@@ -81,10 +83,15 @@
 
 
     <div id="Tab4" class="tabcontent">
+        <label for="filterSelect" class="styled-label">Filtrar por categoría:</label>
 
         <div class="select-button-container">
 
-            <label for="filterSelect" class="styled-label">Filtrar por categoría:</label>
+            <label class="styled-Advice"> 
+                <span style="color: red;"><strong>IMPORTANTE: </strong></span>
+                Si quiere actualizar la tabla indicadores semanales, debe tener selecionado
+                un filtro por cada categoria
+            </label>
 
                 <div id="filter-año"> </div>
                 <div id="filter-mes"> </div>
@@ -140,6 +147,18 @@
     
     </div>
 
+    <div id="Tab7" class="tabcontent">
+
+        <div class="select-button-container">
+            
+            <label class="styled-Advice"> 
+                <span style="color: red;"><strong>IMPORTANTE: </strong></span>
+                Estamos trabajando para usted ᕙ(⇀‸↼‶)ᕗ
+            </label>
+
+        </div>
+    
+    </div>
 
     <button id="scrollToTopBtn" onclick="scrollToTop()">Subir</button>
 

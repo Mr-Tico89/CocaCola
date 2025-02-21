@@ -4,9 +4,9 @@ setlocal enabledelayedexpansion
 
 
 :: Obtener la ruta base del script
-set "WEB_PATH=%~dp0"
-set "PGSQL_PATH=!WEB_PATH:CocaCola=pgsql!"
-
+set "PATH=%~dp0"
+set "PGSQL_PATH=%PATH%\psql"
+set "WEB_PATH=%PATH%\CocaCola"
 
 :: Configurar entorno virtual
 set "VENV_PATH=%WEB_PATH%\entorno\Scripts\activate"
@@ -67,7 +67,7 @@ echo Iniciando PostgreSQL...
 :: Iniciar aplicación Flask
 echo Iniciando aplicación Flask...
 if exist "%WEB_PATH%\app.py" (
-    call python "%WEB_PATH%\app.py"
+    start cmd /c python "%WEB_PATH%\app.py"
 ) else (
     echo Error: No se encontró 'app.py'.
     pause

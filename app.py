@@ -1,5 +1,5 @@
 import requests
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, send_from_directory
 from flask_cors import CORS
 import tempfile
 import psycopg2
@@ -7,7 +7,6 @@ from psycopg2.extras import RealDictCursor
 import os
 import pandas as pd
 from io import BytesIO
-from urllib.parse import unquote  
 
 
 
@@ -87,6 +86,10 @@ def convert_to_utf8_without_bom(input_file):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static', 'favicon.ico', mimetype='image/icons.icon')
 
 #Funcion para abrir el front
 @app.route('/')
@@ -508,16 +511,23 @@ def save():
             VALUES ({value_placeholders}) 
             ON CONFLICT DO NOTHING
         """
+        rows_inserted = 0
 
         # Insertar las filas
         for row in rows:
             # Mapear claves de data a columnas en caso de desajuste
             values = tuple(row.get(col.replace('"', ''), None) for col in sanitized_columns)
             cur.execute(insert_query, values)
+            rows_inserted += cur.rowcount  # Suma las filas insertadas
 
         # Confirmar los cambios
         conn.commit()
-        return jsonify({'status': 'success'}), 200
+
+        # Verificar si se insertaron datos o no
+        if rows_inserted > 0:
+            return jsonify({'status': 'success', 'message': f'{rows_inserted} filas insertadas'}), 200
+        else:
+            return jsonify({'status': 'no_action', 'message': 'Los datos ya existían, no se insertó nada'}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
