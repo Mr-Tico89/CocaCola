@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', function () {
         button.addEventListener('click', (event) => {
             const tabId = event.target.getAttribute('onclick').match(/'(.*?)'/)[1]; // Extrae el ID de la pestaña
             clearGlobalActiveFilters(globalActiveFilters)
-            clearGlobalActiveFilters(selectedFilters)
             // Definir las acciones para cada pestaña
             switch (tabId) {
                 case 'Tab2':
@@ -67,29 +66,38 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    //funcion del boton en ind_semanal
     document.getElementById('Gen-button').addEventListener('click', async function (event) {
         try {
             const tableContainer = document.getElementById('Indicador-container');
-    
+            
             // Mostrar un mensaje de carga
             tableContainer.innerHTML = '<p>Actualizando datos...</p>';
-    
+            
             // Ejecutar los filtros y cálculos
             const data = await applyFiltersAndCalculate(); //ver q ondis pq falla
+            
+            const date = applyDate();
+            console.log("data",data)
             // Guardar los datos procesados
             await saveData(data);
 
+            console.log(date)
+            // Guardar la fecha de los datos procesados
+            await saveData(date);
+            console.log("hola")
+            await loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
+
             // Llamada a la función
-            // Verificar si selectedFilters.año y selectedFilters.semana tienen longitud 1
+            // Verificar si globalActiveFilters.año y globalActiveFilters.semana tienen longitud 1
             if (globalActiveFilters.año.size >= 1 && globalActiveFilters.mes.size >= 1 && 
                 globalActiveFilters.semana.size >= 1 && globalActiveFilters.areas.size >= 2
             ) {
                 const result = CreateJsonInd(data, globalActiveFilters.areas.has("Paros Menores")); //ver q ondis pqq falla
+                console.log("result",result)
                 await saveData(result);
             }
-
-            // Cargar la tabla actualizada
-            await loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
+          
             console.log('Tabla actualizada correctamente.');
 
         } catch (error) {
@@ -99,6 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
             tableContainer.innerHTML = '<p>Error al actualizar los datos.</p>';
         }
     });
+
     
     // Para el botón de subir
     document.getElementById('upload-form').addEventListener('submit', function (event) {
@@ -114,18 +123,11 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => document.getElementById('upload-status').innerText = data.message)
             .catch(error => console.error('Error al subir el archivo:', error));
     });
-
-
-
 });
 
 
 // Objeto global para almacenar filtros activos por columna
 const globalActiveFilters  = {};
-
-
-// Objeto para almacenar los filtros seleccionados
-const selectedFilters = {};
 
 
 // funcion para limpiar filtros, se usa cada vez que cambia de pestaña
@@ -187,6 +189,11 @@ async function loadTableOptions() {
         const tables = await response.json();
         const tableSelect = document.getElementById('table-select');
         tables.forEach(table => {
+            // Verificar si la tabla es alguna de las tablas que quieres excluir
+            if (table === "tabla_nombres" || table === "temp_oeeydisponibilidad" || table === "temp_datasheet_fallas_semanales" || table === "indicador_semanal_fecha") {
+                return; // Salta la tabla y continúa con la siguiente
+            }
+
             const option = document.createElement('option');
             
             option.value = table;
@@ -216,8 +223,6 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
         console.error(`Error fetching data for table ${table}:`, error);
     }
 }
-
-
 
 
 // Función madre para crear el boton de filtros y menu desplegable
@@ -1133,7 +1138,7 @@ function updateIndData(indData, minutosAverias, minutosOEE, metrics, avg) {
 }
 
 
-//descargas el archivo powerBI de la carpeta del proyecto
+//descargas el archivo powerBI de google drive
 function cargarPowerBI() {
     fetch('/powerbi')
     .then(response => response.json())
@@ -1142,12 +1147,14 @@ function cargarPowerBI() {
 }
 
 
+
 //crea el json para guardarlo en ind_semanal_historico
 function CreateJsonInd(jsonData, boolean) {
     const newColumns = ["id", "año", "semana", "disp", "meta", "mtbf", "mttr", "averias", "minutos", "oee", "parosmenores"];
     const ParosMenores = boolean
-    const año = selectedFilters.año; // Obtener el año desde selectedFilters
-    const semana = selectedFilters.semana; // Obtener la semana desde selectedFilters
+    const año = parseInt(Array.from(globalActiveFilters.año)[0], 10); // Obtener el año desde globalActiveFilters
+    const semana = parseInt(Array.from(globalActiveFilters.semana)[0], 10); // Obtener la semana desde globalActiveFilters
+    console.log("jsonData", jsonData)
     const resultado = {
         columns: newColumns,
         data: jsonData.data
@@ -1157,10 +1164,12 @@ function CreateJsonInd(jsonData, boolean) {
                 año: año,
                 semana: semana,
                 disp: item.disp ? parseFloat(item.disp.replace('%', '')) / 100 : 0, // Convertir porcentaje a decimal
+                meta: item.meta ? parseFloat(item.meta) : 0,
                 mtbf: item.mtbf ? parseFloat(item.mtbf) : 0,
                 mttr: item.mttr ? parseFloat(item.mttr) : 0,
                 averias: item.averias ? parseInt(item.averias) : 0,
-                minutos: item.minutos ? parseInt(item.minutos) : 0,
+                minutos: item.minutos ? parseFloat(item.minutos) : 0,
+                oee: item.oee ? parseFloat(item.oee.replace('%', '')) / 100 : 0,
                 parosmenores: ParosMenores,  
             })),
         table_name: "indicador_semanal_historico"
@@ -1171,10 +1180,18 @@ function CreateJsonInd(jsonData, boolean) {
 
 
 //funcion para mostrar los botones de descarga y cambiar pagina en la tab 'ver tablas'
-function showDownloadButton() {
+function showDownloadButton(table) {
     document.getElementById("download-btn").style.display = "block";
     document.getElementById("pagination").style.display = "flex"; // Mostrar paginación
+    
+    if (table === "indicador_semanal") {
+        document.getElementById("date").style.display = "flex"; // Mostrar paginación
+    }
+    else{
+        document.getElementById("date").style.display = "none"; // Mostrar paginación
+    }
 }
+
 
 
 // para descargar tablas completas
@@ -1206,4 +1223,50 @@ function downloadTable() {
         console.error("Error:", error);
         alert("Error al descargar la tabla: " + error.message);
     });
+}
+
+
+function applyDate() {
+    const newColumns = ["año", "mes", "semana"]
+    const año = parseInt(Array.from(globalActiveFilters.año)[0], 10); // Obtener el año desde globalActiveFilters
+    const mes = Array.from(globalActiveFilters.mes)[0] // Obtener el mes desde globalActiveFilters
+    const semana = parseInt(Array.from(globalActiveFilters.semana)[0], 10); // Obtener la semana desde globalActiveFilters
+    const resultado = {
+        columns: newColumns,
+        data: [{
+            año: año,  
+            mes: mes,  
+            semana: semana,
+        }],
+                
+        table_name: "indicador_semanal_fecha"
+    };    
+    return resultado;
+}
+
+
+//para actualizar la paginacion (por una extraña razon a veces se bugea cuando se clickea rapido o cuando hay filtros)
+function updateDate() {
+    loadFullTableData('indicador_semanal_fecha').then(response => {
+        // Asegurar que response.data es un array y que tiene al menos un elemento
+        if (Array.isArray(response.data) && response.data.length > 0) {
+            const { año, mes, semana } = response.data[0]; // Obtener datos del primer objeto
+    
+            const dateInfo = document.getElementById('dateInfo1');
+            dateInfo.innerHTML = `año: ${año} &nbsp;&nbsp;&nbsp; mes: ${mes} &nbsp;&nbsp;&nbsp; semana: ${semana}`;
+        } else {
+            console.warn('No hay datos disponibles en la respuesta.');
+        }
+    })
+    .catch(error => {
+        console.error('Error al cargar los datos:', error);
+    });
+    
+       
+    
+    
+    
+
+    
+    
 }

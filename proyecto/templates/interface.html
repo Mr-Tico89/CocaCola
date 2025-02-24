@@ -31,7 +31,7 @@
         <div class="select-button-container">
             <label for="filterSelect" class="styled-label"> Seleccionar tabla:</label>
 
-            <select id="table-select" class="table-select" onchange="loadTableData('table-container-tab1', 'Tab1', this.value, true ); showDownloadButton();">
+            <select id="table-select" class="table-select" onchange="loadTableData('table-container-tab1', 'Tab1', this.value, true ); showDownloadButton(this.value);  updateDate()">
                 <option value="">Select a table</option>
             </select>
 
@@ -46,6 +46,11 @@
             </div>
 
         </div>
+
+        <div id="date" class="date-container" style="display: none;">
+            <span id="dateInfo1" class="date-label"> Año: 0000 Mes: 00 Semana: 00 </span>
+        </div>
+
         <div id="table-container-tab1" class="table-container"></div>
     </div>
     
@@ -131,7 +136,7 @@
 
 
     <div id="Tab6" class="tabcontent">
-
+        
         <div class="select-button-container">
             
             <label class="styled-Advice"> 
@@ -140,9 +145,8 @@
             </label>
 
         </div>
-
         <div class="select-button-container">
-            <button onclick="cargarPowerBI()" class="extra-button">Descargar Datos y abrir power BI</button>
+            <button onclick="cargarPowerBI()" class="extra-button">Abrir archivo de power BI</button>
         </div>
     
     </div>

@@ -1,0 +1,4 @@
+.vscode/
+entorno/
+__pycache__/
+pgsql/

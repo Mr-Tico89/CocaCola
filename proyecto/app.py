@@ -14,9 +14,11 @@ import logging
 
 
 def create_app():
+    print("Iniciando aplicación Flask...")
     app = Flask(__name__, static_folder='static')
     print("Aplicacion iniciada en: http://localhost:8000")
     print("Para cerrar la app CTRL + C")
+
     # Configurar el logger de Waitress para evitar los mensajes INFO
     logging.getLogger('waitress').setLevel(logging.ERROR)  # Configurar Waitress para que no imprima INFO
 
@@ -26,7 +28,7 @@ def create_app():
 
 
     # Configuración de la carpeta de subida
-    UPLOAD_FOLDER = 'proyecto/uploads'
+    UPLOAD_FOLDER = 'uploads'
     ALLOWED_EXTENSIONS = {'csv'}
 
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -498,8 +500,7 @@ def create_app():
             # Conexión a la base de datos
             conn = psycopg2.connect(**config)
             cur = conn.cursor()
-
-            if table_name == "indicador_semanal":
+            if table_name in ['indicador_semanal', 'indicador_semanal_fecha']:
                 # TRUNCATE para limpiar la tabla antes de actualizar
                 cur.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY")
 

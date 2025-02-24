@@ -50,7 +50,7 @@ BEGIN
         EXTRACT(YEAR FROM NEW.Days_in_Calendar_DateTime) AS A±O,
         round(CAST((NEW.Horas_planificadas::FLOAT * 60) as NUMERIC), 2) AS MIN,
         NEW.OEE AS OEE,
-        TO_CHAR(NEW.Days_in_Calendar_DateTime, 'Mon') AS MES,
+        TO_CHAR(NEW.Days_in_Calendar_DateTime, 'mon') AS MES,
         EXTRACT(WEEK FROM NEW.Days_in_Calendar_DateTime) AS SEMANA
     FROM datos_maquinaria.OEEYDISPONIBILIDAD
     WHERE NEW.Machine_Name = Machine_Name
