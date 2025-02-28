@@ -1,4 +1,7 @@
-.vscode/
-entorno/
-__pycache__/
-pgsql/
+proyecto/.vscode
+proyecto/entorno
+proyecto/pgsql
+proyecto/python
+proyecto/__pycache__
+pgsql
+python

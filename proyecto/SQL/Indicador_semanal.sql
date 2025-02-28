@@ -63,10 +63,7 @@ CREATE INDEX idx_indicador_ID_año_semana ON INDICADOR_SEMANAL_HISTORICO (ID, A�
 
 
 CREATE TABLE datos_maquinaria.INDICADOR_SEMANAL_FECHA (
-    A±O INT NOT NULL,
-    MES VARCHAR(255) NOT NULL,
-    SEMANA INT NOT NULL,
-    PRIMARY KEY (A±O, MES, SEMANA)
+    fecha VARCHAR (255)
 );
 
 -- Insertar la fila inicial si no existe.

@@ -20,7 +20,6 @@ set "NombreCluster=!NombreCluster: =!"
 set "RutaCluster=%PGSQL_PATH%\%NombreCluster%"
 
 
-
 :: Verificar si pg_ctl existe
 set "PG_CTL=%PGSQL_PATH%\bin\pg_ctl"
 
@@ -30,22 +29,35 @@ echo Iniciando PostgreSQL...
 "%PG_CTL%" start -D "%RutaCluster%"
 
 
+
+
 :: Configurar entorno virtual
 set "VENV_PATH=%WEB_PATH%\entorno\Scripts\activate"
+
+:: Verificar si el entorno virtual existe
+::if not exist "%VENV_PATH%" (
+    :: revisarlo para q funcione
+    echo Creando entorno virtual...
+
+    ::python -m venv entorno 
+
+    echo Instalando dependencias...
+
+    ::call "%VENV_PATH%"
+    ::pip install -r requirements.txt
+    ::deactivate
+::)
 
 
 :: Activar entorno virtual
 echo activando entorno virtual...
-set "PYTHON_EVNC=%WEB_PATH%\entorno\Scripts\python.exe"
-
 call "%VENV_PATH%"
 
-    
-:: Agregar WEB_PATH al PYTHONPATH
-:: set PYTHONPATH=%WEB_PATH%
 
 :: Iniciar aplicación Flask
 echo Iniciando aplicación Flask...
+set "PYTHON_EVNC=%WEB_PATH%\entorno\Scripts\python.exe"
+
 
 start http://localhost:8000	
 start /wait "" "%PYTHON_EVNC%" -m waitress --port=8000 --call proyecto.app:create_app 
@@ -56,6 +68,5 @@ echo Deteniendo PostgreSQL...
 "%PG_CTL%" stop -D "%RutaCluster%" -m fast
 
 
-:: Cerrar la ventana automáticamente
+:: Cerrar la ventana automáticamente al cerrar todo
 exit
-

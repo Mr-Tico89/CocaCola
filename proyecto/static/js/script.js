@@ -50,6 +50,10 @@ document.addEventListener('DOMContentLoaded', function () {
             clearGlobalActiveFilters(globalActiveFilters)
             // Definir las acciones para cada pestaña
             switch (tabId) {
+                case 'Tab1':
+                    updateDate();
+                    break;
+
                 case 'Tab2':
                     loadTableData('editable-container-tab2', 'Tab2', 'db_averias_consolidado', true)
                     break;
@@ -59,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     break;
 
                 case 'Tab4':
+                    updateDate();
                     loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
                     loadAndPopulateFilters()
                     break;
@@ -75,26 +80,26 @@ document.addEventListener('DOMContentLoaded', function () {
             tableContainer.innerHTML = '<p>Actualizando datos...</p>';
             
             // Ejecutar los filtros y cálculos
-            const data = await applyFiltersAndCalculate(); //ver q ondis pq falla
+            const data = await applyFiltersAndCalculate(); 
             
             const date = applyDate();
-            console.log("data",data)
+    
             // Guardar los datos procesados
             await saveData(data);
 
-            console.log(date)
             // Guardar la fecha de los datos procesados
             await saveData(date);
-            console.log("hola")
+            updateDate();
             await loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
 
             // Llamada a la función
             // Verificar si globalActiveFilters.año y globalActiveFilters.semana tienen longitud 1
-            if (globalActiveFilters.año.size >= 1 && globalActiveFilters.mes.size >= 1 && 
-                globalActiveFilters.semana.size >= 1 && globalActiveFilters.areas.size >= 2
+            const requeridos = ["Mecánico", "Eléctrico"];
+
+            if (globalActiveFilters.semana.size == 1 && 
+                requeridos.every(valor => globalActiveFilters.areas.has(valor))
             ) {
                 const result = CreateJsonInd(data, globalActiveFilters.areas.has("Paros Menores")); //ver q ondis pqq falla
-                console.log("result",result)
                 await saveData(result);
             }
           
@@ -120,7 +125,25 @@ document.addEventListener('DOMContentLoaded', function () {
             body: formData
         })
             .then(response => response.json())
-            .then(data => document.getElementById('upload-status').innerText = data.message)
+            .then(data => {
+                // Muestra el mensaje de éxito o error en el frontend
+                document.getElementById('upload-status').innerText = data.message;
+
+                // Si se recibió la cantidad de filas insertadas, también mostrarlo
+                if (data.inserted_rows) {
+                    console.log(`Filas insertadas: ${data.inserted_rows}`);
+
+                    // Muestra el número de filas insertadas en un elemento de la página, por ejemplo:
+                    document.getElementById('inserted-rows-status').innerText = `Filas insertadas: ${data.inserted_rows}`;
+                }
+
+                // Resetea el formulario después de 5 segundos
+                setTimeout(function() {
+                    document.getElementById('upload-form').reset();
+                    document.getElementById('upload-status').innerHTML = '';
+                    document.getElementById('file-input').value = ""; // Borra el archivo seleccionado
+                }, 2500); // 1000 ms = 1 segundo
+            })
             .catch(error => console.error('Error al subir el archivo:', error));
     });
 });
@@ -190,15 +213,13 @@ async function loadTableOptions() {
         const tableSelect = document.getElementById('table-select');
         tables.forEach(table => {
             // Verificar si la tabla es alguna de las tablas que quieres excluir
-            if (table === "tabla_nombres" || table === "temp_oeeydisponibilidad" || table === "temp_datasheet_fallas_semanales" || table === "indicador_semanal_fecha") {
-                return; // Salta la tabla y continúa con la siguiente
-            }
-
-            const option = document.createElement('option');
+            if (table === "db_averias_consolidado" || table === "indicador_semanal_historico" || table === "hpr_oee" || table === "indicador_semanal") {
+                const option = document.createElement('option');
             
-            option.value = table;
-            option.textContent = table.replace(/_/g, ' ').charAt(0).toUpperCase() + table.replace(/_/g, ' ').slice(1);
-            tableSelect.appendChild(option);
+                option.value = table;
+                option.textContent = table.replace(/_/g, ' ').charAt(0).toUpperCase() + table.replace(/_/g, ' ').slice(1);
+                tableSelect.appendChild(option);
+            }
         });
     } catch (error) {
         console.error('Error fetching tables:', error);
@@ -231,13 +252,16 @@ async function createFilterSelect(filterName, column, tableName, containerId) {
     
     const { container, dropdownMenu } = createDropdownFilter(filterName, column);
 
-    if (!(containerId == "Indicador-container")){
-        // Obtener valores únicos desde el backend
-        const uniqueValues = await fetchUniqueValues(column, tableName);  
+    //evita que se creen filtro en la tabla para crear indicador_semanal 
+    
+    // Obtener valores únicos desde el backend
+    const uniqueValues = await fetchUniqueValues(column, tableName);  
 
-        // Agregar los checkboxes y los valores únicos obtenidos al dropdownMenu
-        addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId);
-    }
+    const orderUniqueVal = order(uniqueValues)
+
+    // Agregar los checkboxes y los valores únicos obtenidos al dropdownMenu
+    addCheckboxesToDropdown(filterName, orderUniqueVal, column, dropdownMenu, tableName, containerId);
+    
     return container;
 }
 
@@ -251,12 +275,19 @@ function createDropdownFilter(filterName, column) {
     // Crear el botón desplegable
     const dropdownButton = document.createElement('button');
     if (filterName === "dropdown") {
-        dropdownButton.textContent = '▼';  // Mejor icono visual
+        if (hasActiveFilters(column)) {
+            dropdownButton.textContent = '▼↓'; // Indicador de filtro activo
+            dropdownButton.classList.add('active-button');
+        } 
+        else {
+            dropdownButton.textContent = '▼';
+            dropdownButton.classList.add(`${filterName}-button`);
+        }
     } else {
         dropdownButton.textContent = column;
+        dropdownButton.classList.add(`${filterName}-button`);
     }
     
-    dropdownButton.classList.add(`${filterName}-button`);
     dropdownButton.setAttribute('aria-expanded', 'false'); // Accesibilidad
 
     // Crear el menú desplegable
@@ -323,6 +354,12 @@ function createDropdownFilter(filterName, column) {
 }
 
 
+function hasActiveFilters(column) {
+    return globalActiveFilters[column] && [...globalActiveFilters[column]].some(value => value !== 0);
+}
+
+
+
 // funcion para crear los valores unicos, para los filtros de columnas 
 async function fetchUniqueValues(column, tableName) {
     const filters = {};
@@ -354,7 +391,7 @@ async function fetchUniqueValues(column, tableName) {
 // Función auxiliar para agregar los checkboxes al menú desplegable, cada vez que se activa uno activa fetchFilteredData
 function addCheckboxesToDropdown(filterName, uniqueValues, column, dropdownMenu, tableName, containerId) {
     createClearFiltersButton(dropdownMenu, column, containerId, tableName);
-
+    
     uniqueValues.forEach(value => {
         const checkboxContainer = document.createElement('label');
         checkboxContainer.classList.add(`${filterName}-item`);
@@ -672,10 +709,12 @@ function createTableHeader(columns, containerId, tableName) {
         );
 
         // Crear filtro para cada columna
-        createFilterSelect('dropdown', column, tableName, containerId)
-        .then(container => {
-            th.appendChild(container);  // Añadir el contenedor del filtro al encabezado de la columna
-        });
+        if (containerId !== 'Indicador-container') {
+            createFilterSelect('dropdown', column, tableName, containerId)
+            .then(container => {
+                th.appendChild(container);  // Añadir el contenedor del filtro al encabezado de la columna
+            });
+        }
 
         headerRow.appendChild(th);
     });
@@ -730,10 +769,10 @@ function createEditableCell(row, column, data, rowIndex, table_name) {
     
 
     // Manejar la columna 'areas' con un <select>
-    if (column === 'areas' && cellValue !== 'Paros Menores') {
+    if (column === 'areas' ) {
         const select = document.createElement('select');
         select.id = `selectCell${counter}`;
-        const options = ['', 'Mecánico', 'Eléctrico'];
+        const options = [' ', 'Mecánico', 'Eléctrico', 'Paros Menores'];
 
         options.forEach(optionValue => {
             const option = document.createElement('option');
@@ -807,14 +846,16 @@ function createButtonCell(rowElement, tbody, data, table_name) {
     
 
     button.addEventListener('click', () => {
-        const rowIndex = rowElement.rowIndex - 1; // Restar 1 si hay un encabezado en la tabla
+        const rowIndex = rowElement.rowIndex - 1; 
         if (confirm('¿Seguro que quieres eliminar esta fila?')) {
             deleteRow(data[rowIndex], table_name)
                 .then(response => {
                     if (response.success) {
                         tbody.removeChild(rowElement); // Eliminar fila del DOM
-
+                        data.splice(rowIndex, 1); 
+                  
                         alert('Fila eliminada con éxito.');
+
                     } else {
                         alert(`Error al eliminar fila: ${response.error}`);
                     }
@@ -829,6 +870,19 @@ function createButtonCell(rowElement, tbody, data, table_name) {
     buttonCell.appendChild(button);
     return buttonCell;
 }
+
+function recalculateRowIndexes() {
+    const tbody = document.querySelector("tbody"); // Obtener el cuerpo de la tabla
+    const rows = tbody.getElementsByTagName("tr"); // Obtener todas las filas
+
+    for (let i = 0; i < rows.length; i++) {
+        rows[i].dataset.index = i; // Actualizar el índice de cada fila
+    }
+}
+
+
+
+
 
 
 function createTextCell(content) {
@@ -913,6 +967,7 @@ async function loadFullTableData(tableName = null) {
     if (!table) return;
 
     const filters = {};
+
     // Construir filtros activos
     for (const column in globalActiveFilters) {
         if (globalActiveFilters[column]?.size > 0) {
@@ -981,39 +1036,33 @@ function applyFiltersAndCalculate() {
 
 
 // Función auxiliar para calcular los minutos por ID o Línea
-function calculateTotalMinutesById(filteredData, minutosAverias, idField, valueField) {
+function calculateTotalMinutesById(filteredData, minutos, idField, valueField) {
     filteredData.data.forEach(row => {
         const id = row[idField]; // Campo usado como clave (ej. "id" o "linea")
-        const value = parseFloat(row[valueField]); // Campo usado para sumar (ej. "minutos" o "min")
+        const value = row[valueField]; // Campo usado para sumar (ej. "minutos" o "min")
 
         if (!id || isNaN(value)) {
             console.warn(`Fila ignorada: ${idField}="${id}", ${valueField}="${row[valueField]}"`);
             return; // Ignorar filas sin clave o sin valor válido
         }
 
-        // Inicializar si no existe la clave
-        if (!minutosAverias.minutos[id]) {
-            minutosAverias.minutos[id] = 0;
-            minutosAverias.countMin[id] = 0;
-        }
-
         // Sumar los valores del campo especificado
-        minutosAverias.minutos[id] += value;
-        minutosAverias.countMin[id] += 1;  // Contar la cantidad de registros por ID
+        minutos.minutos[id] += value;
+        minutos.countMin[id] += 1;  // Contar la cantidad de registros por ID
     });
 
     // Calcular el total global y aproximar a la centésima
-    minutosAverias.minutos.PLANTA = calculateTotal(minutosAverias.minutos);
-    minutosAverias.countMin.PLANTA = calculateTotal(minutosAverias.countMin);
+    minutos.minutos.PLANTA = calculateTotal(minutos.minutos);
+    minutos.countMin.PLANTA = calculateTotal(minutos.countMin);
 
     // Aproximar los valores individuales a la centésima
-    for (const key in minutosAverias.minutos) {
+    for (const key in minutos.minutos) {
         if (key !== 'PLANTA') {
-            minutosAverias.minutos[key] = parseFloat(minutosAverias.minutos[key].toFixed(2));
+            minutos.minutos[key] = parseFloat(minutos.minutos[key].toFixed(2));
         }
     }
 
-    return minutosAverias;
+    return minutos;
 }
 
 
@@ -1029,23 +1078,23 @@ function calculateTotal(obj) {
 
 
 // Función para calcular MTTR, MTBF y Disponibilidad
-function calculateMetrics(minutosAverias, minutosOEE, metrics) {
-    for (const id in minutosAverias.minutos) {
-        if (minutosAverias.minutos.hasOwnProperty(id) && minutosAverias.countMin.hasOwnProperty(id)) {
-            const totalMinutosDetencion = minutosAverias.minutos[id];
-            const numeroAverias = minutosAverias.countMin[id];
-            const totalMinutosProduccion = minutosOEE.minutos[id];
+function calculateMetrics(minutosAv, minutosOE, metrics) {
+    for (const id in minutosAv.minutos) {
+        if (minutosAv.minutos.hasOwnProperty(id) && minutosAv.countMin.hasOwnProperty(id)) {
+            const totalMinutosDetencion = minutosAv.minutos[id];
+            const numeroAverias = minutosAv.countMin[id];
+            const totalMinutosProduccion = minutosOE.minutos[id];
 
             // Calcular MTTR
             metrics.mttr[id] = numeroAverias > 0 ? parseFloat((totalMinutosDetencion / numeroAverias).toFixed(2)) : 0;
 
             // Calcular MTBF (convertido a horas)
-            metrics.mtbf[id] = numeroAverias > 0 ? parseFloat((totalMinutosProduccion / numeroAverias / 60).toFixed(2)) : 0;
+            metrics.mtbf[id] = numeroAverias > 0 ? Math.round(( (totalMinutosProduccion / numeroAverias) / 60) * 100) / 100 : 0;
+
 
             // Calcular Disponibilidad (en porcentaje)
-            const disponibilidad = totalMinutosProduccion + totalMinutosDetencion;
-            metrics.disp[id] = disponibilidad > 0
-                ? parseFloat((totalMinutosProduccion / disponibilidad).toFixed(4) ): 0;
+            const totalMin = totalMinutosProduccion + totalMinutosDetencion;
+            metrics.disp[id] = totalMin > 0 ? parseFloat((totalMinutosProduccion / totalMin).toFixed(4)) : 0;
         }
     }
 
@@ -1154,7 +1203,6 @@ function CreateJsonInd(jsonData, boolean) {
     const ParosMenores = boolean
     const año = parseInt(Array.from(globalActiveFilters.año)[0], 10); // Obtener el año desde globalActiveFilters
     const semana = parseInt(Array.from(globalActiveFilters.semana)[0], 10); // Obtener la semana desde globalActiveFilters
-    console.log("jsonData", jsonData)
     const resultado = {
         columns: newColumns,
         data: jsonData.data
@@ -1163,13 +1211,13 @@ function CreateJsonInd(jsonData, boolean) {
                 id: item.total_general, // Renombrar total_general a id
                 año: año,
                 semana: semana,
-                disp: item.disp ? parseFloat(item.disp.replace('%', '')) / 100 : 0, // Convertir porcentaje a decimal
+                disp: item.disp ? parseFloat((parseFloat(item.disp.replace('%', '')) / 100).toFixed(4)) : 0, // Convertir porcentaje a decimal
                 meta: item.meta ? parseFloat(item.meta) : 0,
                 mtbf: item.mtbf ? parseFloat(item.mtbf) : 0,
                 mttr: item.mttr ? parseFloat(item.mttr) : 0,
                 averias: item.averias ? parseInt(item.averias) : 0,
                 minutos: item.minutos ? parseFloat(item.minutos) : 0,
-                oee: item.oee ? parseFloat(item.oee.replace('%', '')) / 100 : 0,
+                oee: item.oee ? parseFloat((parseFloat(item.oee.replace('%', '')) / 100).toFixed(4)) : 0,
                 parosmenores: ParosMenores,  
             })),
         table_name: "indicador_semanal_historico"
@@ -1191,7 +1239,6 @@ function showDownloadButton(table) {
         document.getElementById("date").style.display = "none"; // Mostrar paginación
     }
 }
-
 
 
 // para descargar tablas completas
@@ -1227,16 +1274,34 @@ function downloadTable() {
 
 
 function applyDate() {
-    const newColumns = ["año", "mes", "semana"]
-    const año = parseInt(Array.from(globalActiveFilters.año)[0], 10); // Obtener el año desde globalActiveFilters
-    const mes = Array.from(globalActiveFilters.mes)[0] // Obtener el mes desde globalActiveFilters
-    const semana = parseInt(Array.from(globalActiveFilters.semana)[0], 10); // Obtener la semana desde globalActiveFilters
+    const newColumns = ["fecha"]
+
+    const años = Array.from(globalActiveFilters.año);  // Obtiene todos los valores de 'año' en un array
+    const meses = Array.from(globalActiveFilters.mes);
+    const semanas = Array.from(globalActiveFilters.semana); // Obtener la semana desde globalActiveFilters
+    
+    // Crear la cadena de filtros usados, incluyendo solo los filtros que no estén vacíos
+    let filtrosUsados = 'Filtros usados:';
+
+    if (años.length > 0) {
+        filtrosUsados += `  Año = ${años.join(', ')},`;
+    }
+
+    if (meses.length > 0) {
+        filtrosUsados += `  Mes = ${meses.join(', ')},`;
+    }
+
+    if (semanas.length > 0) {
+        filtrosUsados += `  Semana = ${semanas.join(', ')},`;
+    }
+
+    // Eliminar la última coma, si existe
+    filtrosUsados = filtrosUsados.replace(/,$/, '');
+
     const resultado = {
         columns: newColumns,
         data: [{
-            año: año,  
-            mes: mes,  
-            semana: semana,
+            fecha: filtrosUsados,  
         }],
                 
         table_name: "indicador_semanal_fecha"
@@ -1247,26 +1312,80 @@ function applyDate() {
 
 //para actualizar la paginacion (por una extraña razon a veces se bugea cuando se clickea rapido o cuando hay filtros)
 function updateDate() {
+    
     loadFullTableData('indicador_semanal_fecha').then(response => {
         // Asegurar que response.data es un array y que tiene al menos un elemento
         if (Array.isArray(response.data) && response.data.length > 0) {
-            const { año, mes, semana } = response.data[0]; // Obtener datos del primer objeto
-    
-            const dateInfo = document.getElementById('dateInfo1');
-            dateInfo.innerHTML = `año: ${año} &nbsp;&nbsp;&nbsp; mes: ${mes} &nbsp;&nbsp;&nbsp; semana: ${semana}`;
+           
+            document.querySelectorAll("[id^='dateInfo']").forEach(element => {
+
+                element.innerHTML = response.data[0].fecha;
+            });
         } else {
             console.warn('No hay datos disponibles en la respuesta.');
         }
     })
     .catch(error => {
         console.error('Error al cargar los datos:', error);
-    });
-    
-       
-    
-    
-    
-
-    
-    
+    });    
 }
+
+
+function order(uniqueValues) {
+    // Definir el orden de los meses
+    const mesesOrdenados = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    // Detectar si la lista contiene números o meses
+
+    return uniqueValues.sort((a, b) => {
+        //ordenar numeros
+        if (typeof a === "number" && typeof b === "number") {
+            return a - b; // Ordenar números
+        } 
+        //ordenar meses
+        if (mesesOrdenados.includes(a) && mesesOrdenados.includes(b)) {
+            return mesesOrdenados.indexOf(a) - mesesOrdenados.indexOf(b); // Ordenar meses
+        } 
+        // ordenar fechas
+        if (/\d{2}-\d{2}-\d{4}/.test(a) && /\d{2}-\d{2}-\d{4}/.test(b)) {
+            return new Date(a) - new Date(b); // Ordenar fechas
+        }
+        return 0; // Dejar sin cambios si los tipos son mixtos o no coinciden
+    });
+}
+
+
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Tab") {
+        let activeElement = document.activeElement;
+        let table = activeElement.closest("table"); // Encuentra la tabla actual
+
+        if (!table) return; // Si no está dentro de una tabla, usa el comportamiento normal
+
+        // Obtener todos los elementos interactivos dentro de la tabla
+        let inputs = Array.from(table.querySelectorAll("input, select, button, textarea"));
+
+        // Obtener el índice del elemento actual
+        let index = inputs.indexOf(activeElement);
+        if (index === -1) return; // Si el elemento no está en la lista, salir
+
+        // Buscar la primera fila con elementos interactivos para contar columnas reales
+        let firstRow = table.querySelector("tr:not(:first-child)"); // Ignoramos la cabecera
+        let firstRowInputs = firstRow ? Array.from(firstRow.querySelectorAll("input, select, button, textarea")) : [];
+        let cols = firstRowInputs.length; // Cantidad de columnas con elementos interactivos
+
+        event.preventDefault(); // Evita el tab normal
+
+        if (event.shiftKey) {
+            // Shift + Tab → Mover hacia arriba
+            let prevIndex = index - cols;
+            if (prevIndex >= 0) inputs[prevIndex].focus();
+        } else {
+            // Tab → Mover hacia abajo
+            let nextIndex = index + cols;
+            if (nextIndex < inputs.length) inputs[nextIndex].focus();
+        }
+    }
+});
+
+
+

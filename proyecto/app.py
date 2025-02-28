@@ -15,6 +15,7 @@ import logging
 
 def create_app():
     print("Iniciando aplicación Flask...")
+
     app = Flask(__name__, static_folder='static')
     print("Aplicacion iniciada en: http://localhost:8000")
     print("Para cerrar la app CTRL + C")
@@ -27,22 +28,31 @@ def create_app():
     CORS(app)  # Permitir solo tu dominio
 
 
-    # Configuración de la carpeta de subida
-    UPLOAD_FOLDER = 'uploads'
+
+ 
+
+    # Obtener la ruta base del proyecto
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
+
+    # Ruta dentro del proyecto, por ejemplo: mi_proyecto/uploads
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')  
+
     ALLOWED_EXTENSIONS = {'csv'}
 
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+    # Crear la carpeta de subida dentro del proyecto si no existe
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
 
     # Configuración de la conexión a PostgreSQL, para nada seguro (investigar q ondis)
     config = {
         "dbname": "cocacola",
-        "user": "webuser",
-        "password": "cocacola9041",
+        "user": "webuser", # Usuario para la pagina Web
+        "password": "cocacola9041", #Clave de pagina Web a la base de datos
         "host": "localhost",  # Cambia si es un servidor remoto
-        "port": 5432,         # Puerto de PostgreSQL
-        "options":"-c client_encoding=WIN1252"        
+        "port": 5432,         # Puerto de PostgreSQL predeterminado
+        "options":"-c client_encoding=WIN1252" #Asegurarse de que el encoding sea el mismo
     }
 
     #para realizar consultas a la base 
@@ -92,7 +102,7 @@ def create_app():
     def allowed_file(filename):
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
+    # Añadir icono personalidado para la pagina Web
     @app.route('/favicon.ico')
     def favicon():
         return send_from_directory('static', 'favicon.ico', mimetype='image/icons.icon')
@@ -100,7 +110,7 @@ def create_app():
     #Funcion para abrir el front
     @app.route('/')
     def index():
-        return render_template('interface.html')  # Sirve tu archivo HTML desde la carpeta 'templates'
+        return render_template('interface.html')  # Archivo HTML desde la carpeta 'templates'
 
 
     #para obtener los nombres de todas las tablas de la base de datos
@@ -140,7 +150,7 @@ def create_app():
 
         # Construir la consulta para obtener valores únicos con filtros
         if column == "fecha":
-            query = f"SELECT DISTINCT TO_CHAR({column}, 'DD-MM-YYYY') FROM {table_name} WHERE {filter_query};"
+            query = f"SELECT DISTINCT TO_CHAR({column}, 'YYYY-MM-DD') FROM {table_name} WHERE {filter_query};"
         else:
             query = f"SELECT DISTINCT {column} FROM {table_name} WHERE {filter_query};"
 
@@ -261,20 +271,22 @@ def create_app():
             # Aplicar filtros dinámicamente
             for column, value in request.args.items():
                 if column in column_names:  # Evitar SQL Injection asegurando que la columna existe
+                    if column == "mes":  # Aquí verificas si la columna es "mes"
+                        continue  # Esto omite el filtro para "mes"
+
                     values = value.split(',')
                     placeholders = ', '.join(['%s'] * len(values))
                     filters.append(f'"{column}" IN ({placeholders})')
                     params.extend(values)
 
             filter_query = " AND ".join(filters) if filters else "1=1"
-
+       
             # Obtener todos los datos sin paginación
             query = f"SELECT row_to_json(t) FROM (SELECT * FROM {table_name} WHERE {filter_query} ) t"
             data = query_db(query, params)
 
             # Extraer los diccionarios JSON de las tuplas
             formatted_data = [row["row_to_json"] for row in data]
-
             return jsonify({
                 "table_name": table_name,
                 "columns": column_names,
@@ -359,23 +371,16 @@ def create_app():
             params = []
             
             for column, value in row_data.items():
-                if column == "observaciones":
-                    # Manejar NULL para la columna "observaciones"
-                    conditions.append(f"({column} = %s OR {column} IS NULL)")
-                    params.append(value if value != "" else None)
-                
+                if value in ("", None):  # Si el valor es vacío o None
+                    conditions.append(f"{column} = ''")
                 else:
-                    # Condición general para otras columnas
                     conditions.append(f"{column} = %s")
                     params.append(value)
 
-
             where_clause = " AND ".join(conditions)
             query = f"DELETE FROM {table_name} WHERE {where_clause}"
-
             # Ejecutar consulta
             query_db(query, params, commit=True)
-            
 
             return jsonify({"success": True, "message": "Fila eliminada con éxito."}), 200
         
@@ -408,10 +413,25 @@ def create_app():
                 insert_query = """
                 INSERT INTO datos_maquinaria.DATASHEEET_FALLAS_SEMANALES
                 SELECT * FROM datos_maquinaria.temp_datasheet_fallas_semanales;
+
+                INSERT INTO db_averias_consolidado (ID, FECHA, AñO, MES, SEMANA, TURNO, MAQUINA, SINTOMA, AREAS, MINUTOS, OBSERVACIONES)
+                SELECT ID, FECHA, AñO, MES, SEMANA, TURNO, MAQUINA, SINTOMA, AREAS, MINUTOS, OBSERVACIONES
+                FROM temp_db_averias_consolidado t
+                WHERE NOT EXISTS (
+                    SELECT 1 
+                    FROM db_averias_consolidado d
+                    WHERE d.AñO = t.AñO 
+                    AND d.MES = t.MES 
+                    AND d.SEMANA = t.SEMANA
+                );
+                
                 TRUNCATE TABLE datos_maquinaria.temp_datasheet_fallas_semanales;
+                TRUNCATE TABLE datos_maquinaria.temp_db_averias_consolidado;
                 """
+                #
                 cursor.execute(insert_query)
                 conn.commit()
+
 
             # Verificar si el nombre del archivo es OEEYDISPONIBILIDAD
             if 'OEEYDISPONIBILIDAD' in filename:
@@ -431,7 +451,20 @@ def create_app():
                 insert_query = """
                 INSERT INTO OEEYDISPONIBILIDAD
                 SELECT * FROM temp_OEEYDISPONIBILIDAD;
+
+                INSERT INTO hpr_oee (LINEA, FECHA, AñO, MES, SEMANA, MIN, OEE)
+                SELECT LINEA, FECHA, AñO, MES, SEMANA, MIN, OEE
+                FROM temp_hpr_oee t
+                WHERE NOT EXISTS (
+                    SELECT 1 
+                    FROM hpr_oee h
+                    WHERE h.AñO = t.AñO 
+                    AND h.MES = t.MES 
+                    AND h.SEMANA = t.SEMANA
+                );
+
                 TRUNCATE TABLE datos_maquinaria.temp_OEEYDISPONIBILIDAD;
+                TRUNCATE TABLE datos_maquinaria.temp_hpr_oee;
                 """
                 cursor.execute(insert_query)
                 conn.commit()
@@ -455,7 +488,7 @@ def create_app():
         file = request.files['file']
 
         if file.filename == '':
-            return jsonify({'message': 'No selected file'}), 400
+            return jsonify({'message': 'Archivo no seleccionado'}), 400
         
         if file and allowed_file(file.filename):
             filename = file.filename
@@ -468,12 +501,12 @@ def create_app():
                 convert_to_utf8_without_bom(file_path) # Llamar a la función para convertir el archivo a UTF-8 sin BOM
                 load_data_to_db(file_path, filename)  # Llama a la función para procesar el archivo y cargarlo
                 os.remove(file_path) # Elimina el archivo una vez usado
-                return jsonify({'message': 'File successfully uploaded and data loaded to DB', 'filename': filename}), 200
+                return jsonify({'message': 'Archivo subido exitosamente y cargado a la base de datos', 'filename': filename}), 200
             
             except Exception as e:
-                return jsonify({'message': f'Error while loading data to DB: {str(e)}'}), 500
+                return jsonify({'message': f'Error mientras se cargaba a la base de datos: {str(e)}'}), 500
         else:
-            return jsonify({'message': 'Invalid file type, only .csv files are allowed'}), 400
+            return jsonify({'message': 'Archivo invalido, solo con el formato permitido'}), 400
 
 
     # funcion para guardar los datos en ind semanal (tabla dinamica)
@@ -488,7 +521,7 @@ def create_app():
 
         # Validaciones iniciales
         if not table_name or not columns or not rows:
-            return jsonify({'error': 'El JSON debe incluir table_name, columns y data'}), 400
+            return jsonify({'error': 'El JSON no cumple con el formarto, debe incluir table_name, columns y data'}), 400
         
         if not isinstance(columns, list) or not isinstance(rows, list):
             return jsonify({'error': 'Columns debe ser una lista y data debe ser una lista de objetos JSON'}), 400
@@ -548,7 +581,7 @@ def create_app():
 
         except Exception as e:
             print(f"Error: {e}")
-            return jsonify({"mensaje": "Ocurrió un error", "error": str(e)}), 500
+            return jsonify({"mensaje": "Ocurrió un ", "error": str(e)}), 500
 
 
     #funcion para descargar los datos de la tabla a un archivo excel
