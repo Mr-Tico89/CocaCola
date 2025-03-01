@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Guardar la fecha de los datos procesados
             await saveData(date);
+
             updateDate();
             await loadTableData('Indicador-container', 'Tab4', 'indicador_semanal', true);
 
@@ -96,20 +97,19 @@ document.addEventListener('DOMContentLoaded', function () {
             // Verificar si globalActiveFilters.año y globalActiveFilters.semana tienen longitud 1
             const requeridos = ["Mecánico", "Eléctrico"];
 
-            if (globalActiveFilters.semana.size == 1 && 
+            if (globalActiveFilters.semana.size == 1 && globalActiveFilters.mes.size == 0 &&
+                globalActiveFilters.año.size == 1 && 
                 requeridos.every(valor => globalActiveFilters.areas.has(valor))
             ) {
                 const result = CreateJsonInd(data, globalActiveFilters.areas.has("Paros Menores")); //ver q ondis pqq falla
                 await saveData(result);
             }
-          
-            console.log('Tabla actualizada correctamente.');
-
+        
         } catch (error) {
             console.error('Error durante el proceso:', error);
     
             const tableContainer = document.getElementById('Indicador-container');
-            tableContainer.innerHTML = '<p>Error al actualizar los datos.</p>';
+            tableContainer.innerHTML = `<p style="color: red; font-weight: bold;">Error: ${error.message}</p>`;
         }
     });
 
@@ -871,19 +871,6 @@ function createButtonCell(rowElement, tbody, data, table_name) {
     return buttonCell;
 }
 
-function recalculateRowIndexes() {
-    const tbody = document.querySelector("tbody"); // Obtener el cuerpo de la tabla
-    const rows = tbody.getElementsByTagName("tr"); // Obtener todas las filas
-
-    for (let i = 0; i < rows.length; i++) {
-        rows[i].dataset.index = i; // Actualizar el índice de cada fila
-    }
-}
-
-
-
-
-
 
 function createTextCell(content) {
     const td = document.createElement('td');
@@ -907,13 +894,13 @@ async function saveData(data) {
         if (!response.ok) {
             throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
         }
-
         const result = await response.json();
-        console.log('Datos guardados:', result);
         return result; // Devolver los datos guardados
+
     } catch (error) {
-        console.error('Error al guardar los datos:', error);
-        throw error; // Lanzar el error para que sea manejado en el nivel superior
+
+        throw new Error(`Error al guardar los datos: ${error}`);
+        
     }
 }
 
@@ -996,8 +983,10 @@ function applyFiltersAndCalculate() {
         loadFullTableData('indicador_semanal')
     ])
     .then(([averiasData, oeeData, indData]) => {
-        if (!averiasData || !averiasData.data || !oeeData || !oeeData.data) {
-            throw new Error("Los datos de las tablas no son válidos.");
+        if (!averiasData?.data || averiasData.data.length === 0 ||
+            !oeeData?.data || oeeData.data.length === 0
+        ) {
+            throw new Error("Los datos de las tablas no son válidos o están vacíos.");
         }
         // Inicializar objetos de minutos para cada tabla
         let minutosAverias = { 
@@ -1222,7 +1211,6 @@ function CreateJsonInd(jsonData, boolean) {
             })),
         table_name: "indicador_semanal_historico"
     };
-
     return resultado;
 }
 

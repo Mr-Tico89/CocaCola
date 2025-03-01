@@ -4,7 +4,7 @@ Este proyecto tiene como objetivo **optimizar y agilizar** el trabajo de los pla
 en el **taller de mantención de Coca-Cola Embonor**, ofreciendo una **solución integral para la gestión y visualización de datos**, lo que permite una administración más eficiente y precisa.
 
 
-## Requisitos 
+# Requisitos 
 El proyecto utiliza los siguientes lenguajes: 
 - Python 3.12 +
 - PostgreSQL 16.1 +
@@ -21,7 +21,7 @@ ya se encuentran instaladas en el entorno virtual.
 > alojada en el mismo host, utilizando el puerto predeterminado localhost:5432.
 
 
-## Instrucciones para iniciar la pagina
+# Instrucciones para iniciar la pagina
 Sigue estos pasos para iniciar el proyecto:
 
 1. Dentro de la carpeta paginaWeb existe el archivo llamado iniciar.bat, abralo y se abrira una terminal.
@@ -44,7 +44,7 @@ el entorno virtual.
 5. Para cerrar la aplicacion debe apretar `Ctrl + C` en la terminal si llega a cerrar mediante el boton X es posible que la aplicacion no cierre bien lo cual puede causar problemas a futuro
 
 
-## Instrucciones para usar la pagina
+# Instrucciones para usar la pagina
 La pagina esta compuesta por varias pestañas las cuales tienen su propia utilidad
 
 1. **"Ver tablas"**: Como su nombre indica sirve para visualizar las tablas de la base de datos ademas se podran descargar en formato CSV (Al menos que esten bloqueadas las descargas por la empresa). 
@@ -71,7 +71,7 @@ archivo.
 7. **"Avisos Turno"**: Estamos trabajando para usted ᕙ(⇀‸↼‶)ᕗ
 
 
-## Bugs encontrados
+# Bugs encontrados
 - **Filtro para observaciones**: Este filtro se sale del margen de la pagina, ademas se limito 
 el texto de este. Esto ocurre para patallas de menor tamaño.
 
@@ -79,7 +79,7 @@ el texto de este. Esto ocurre para patallas de menor tamaño.
 subiendo o bajando en la tabla cuando se recarga la pagina.
 
 
-## Advertencias
+# Advertencias
 - **Paginacion**: es posible que existan algunos bugs respecto a la paginacion cuando existen 
 filtros o se clikea rapido el boton, ya no ocurre con frecuencia pero pueden ocurrir. 
 
@@ -94,35 +94,94 @@ datos ya procesados lo puede hacer directamente usando consultas SQL en la base 
 - **Ciberseguridad**: En temas de ciberseguridad, no se le brindó la atención necesaria debido 
 a la poca experiencia en el área.
 
-- **letra de unidad**: Este programa funciona cuando el disco duro esta asignado a la letra E: si llega a estar en otra letra por ejemplo la D: tiene 2 opcines:
 
-1. Sacar el disco, colocar un pendrive o otra unidad de almacenamiento para que ocupe la letra D:la letra y luego colocar el disco.
+# Configuración de la letra de unidad
+Este programa funciona cuando el disco duro está asignado a la letra `E:`. Si la unidad ha cambiado (por ejemplo, a `D:`), hay dos opciones para solucionarlo:
+
+### Opción 1: Cambiar la asignación de letras de unidad  
+1. Extrae el disco duro.  
+2. Conecta un pendrive u otra unidad de almacenamiento para que ocupe la letra `D:`.  
+3. Vuelve a conectar el disco duro, que ahora debería asignarse a `E:` automáticamente.  
+
+### Opción 2: Modificar la configuración del entorno  
+Si no tienes un pendrive u otro dispositivo, puedes actualizar manualmente la configuración del entorno.  
+
+1. Abre el archivo de configuración ubicado en:  
+
+   ```
+   paginaWeb\proyecto\entorno\pyvenv.cfg
+   ```
+
+2. Ábrelo con el Bloc de notas y verás algo como esto:  
+
+   ```ini
+   home = E:\paginaWeb\python\python-3.12.4.amd64
+   include-system-site-packages = false
+   version = 3.12.4
+   executable = E:\paginaWeb\python\python-3.12.4.amd64\python.exe
+   command = E:\paginaWeb\python\python-3.12.4.amd64\python.exe -m venv D:\paginaWeb\proyecto\entorno
+   ```
+
+3. Si la unidad ha cambiado a `D:`, reemplaza todas las apariciones de `E:` por `D:`, dejando el resto del contenido igual:  
+
+   ```ini
+   home = D:\paginaWeb\python\python-3.12.4.amd64
+   include-system-site-packages = false
+   version = 3.12.4
+   executable = D:\paginaWeb\python\python-3.12.4.amd64\python.exe
+   command = D:\paginaWeb\python\python-3.12.4.amd64\python.exe -m venv D:\paginaWeb\proyecto\entorno
+   ```
+
+4. Guarda los cambios y cierra el archivo.  
 
 
-2. Si por alguna razón no posee un pendrive debe cambiar la configuración del entorno a la letra correspondiente (paginaWeb\proyecto\entorno\pyvenv.cfg), abra el archivo con block de notas y ahi saldra algo del estilo:
-
-    ```bash
-    home = E:\paginaWeb\python\python-3.12.4.amd64
-    include-system-site-packages = false
-    version = 3.12.4
-    executable = E:\paginaWeb\python\python-3.12.4.amd64\python.exe
-    command = E:\paginaWeb\python\python-3.12.4.amd64\python.exe -m venv D:\paginaWeb\proyecto\entorno
-    ```
-
-    Aqui debe cambiar la letra E: del principio de cada directorio a la letra correspondiente de la unidad por ejemplo si el disco ahora esta en la unidad D: debe cambiarlo para que quede asi:
-
-        ```bash
-        home = D:\paginaWeb\python\python-3.12.4.amd64
-        include-system-site-packages = false
-        version = 3.12.4
-        executable = D:\paginaWeb\python\python-3.12.4.amd64\python.exe
-        command = D:\paginaWeb\python\python-3.12.4.amd64\python.exe -m venv D:\paginaWeb\proyecto\entorno
-        ```
 
 
+# Tutorial para acceder a la base de datos
+
+## 1. Iniciar la base de datos  
+Antes de conectarte, asegúrate de que la base de datos esté en ejecución. Puedes hacerlo de dos maneras:
+
+- **Opción 1:** Inicia la aplicación web y déjala ejecutándose en segundo plano.  
+- **Opción 2:** Ejecuta el archivo `PostgreSQL-Start.bat` ubicado en:  
+  ```txt
+  D:\paginaWeb\pgsql\PostgreSQL-Start.bat
+  ```
+  y mantenlo en segundo plano.
+
+## 2. Abrir una terminal  
+1. Presiona `Windows + R`.  
+2. Escribe `cmd` y presiona `Enter`.  
+
+## 3. Navegar hasta el directorio de PostgreSQL  
+1. Si la base de datos está en otra unidad (por ejemplo, `E:`), cambia de unidad escribiendo:  
+   ```sh
+   E:
+   ```
+2. Luego, accede al directorio correcto con:  
+   ```sh
+   cd paginaWeb\pgsql\bin
+   ```
+
+## 4. Configurar la codificación y conectar a la base de datos  
+1. Cambia la codificación con:  
+   ```sh
+   chcp 1252
+   ```
+2. Conéctate a la base de datos con:  
+   ```sh
+   psql -d cocacola -U postgres
+   ```
+
+## 5. Salir de la base de datos  
+Para salir de PostgreSQL, usa el siguiente comando:  
+```sh
+\q
+```
 
 
-## Contribuciones
+
+# Contribuciones
 Si deseas contribuir al proyecto, por favor sigue los siguientes pasos:
 
 1. Haz un fork de este repositorio.
