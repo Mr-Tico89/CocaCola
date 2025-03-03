@@ -78,6 +78,9 @@ el texto de este. Esto ocurre para patallas de menor tamaño.
 - **Cambio de orden**: Cuando se actualiza una fila esta posiblemente cambia de ubicacion 
 subiendo o bajando en la tabla cuando se recarga la pagina.
 
+- **Aviso de Datos duplicados**: Cuando se sube un archivo que ya se ha subido anteriormente, no
+avisa que no se insertaron datos, solamente dice 'Datos subidos exitosamente' cuando en realidad
+no se subio ningun dato
 
 # Advertencias
 - **Paginacion**: es posible que existan algunos bugs respecto a la paginacion cuando existen 

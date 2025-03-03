@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('upload-form').reset();
                     document.getElementById('upload-status').innerHTML = '';
                     document.getElementById('file-input').value = ""; // Borra el archivo seleccionado
-                }, 2500); // 1000 ms = 1 segundo
+                }, 5000); // 1000 ms = 1 segundo
             })
             .catch(error => console.error('Error al subir el archivo:', error));
     });
@@ -237,6 +237,7 @@ async function loadTableData(containerId, tabName,  tableName = null, render) {
         const data = await response.json();
         if (render) {
             renderEditableTable(data, containerId);
+            
             return data;
         }
         return data;
@@ -255,9 +256,11 @@ async function createFilterSelect(filterName, column, tableName, containerId) {
     //evita que se creen filtro en la tabla para crear indicador_semanal 
     
     // Obtener valores únicos desde el backend
-    const uniqueValues = await fetchUniqueValues(column, tableName);  
+    const uniqueValues = await fetchUniqueValues(column, tableName); 
 
-    const orderUniqueVal = order(uniqueValues)
+    const uniqueValuesWithFilters = addToUniqueValuesIfNotExists(uniqueValues,column)
+
+    const orderUniqueVal = order(uniqueValuesWithFilters)
 
     // Agregar los checkboxes y los valores únicos obtenidos al dropdownMenu
     addCheckboxesToDropdown(filterName, orderUniqueVal, column, dropdownMenu, tableName, containerId);
@@ -657,7 +660,6 @@ function renderEditableTable(response, containerId) {
         console.error(`Error: El contenedor con id '${containerId}' no existe en el DOM.`);
         return;
     }
-     
     container.innerHTML = ''
 
     // Crear y configurar la tabla
@@ -1334,14 +1336,47 @@ function order(uniqueValues) {
             return mesesOrdenados.indexOf(a) - mesesOrdenados.indexOf(b); // Ordenar meses
         } 
         // ordenar fechas
-        if (/\d{2}-\d{2}-\d{4}/.test(a) && /\d{2}-\d{2}-\d{4}/.test(b)) {
+        if (/\d{4}-\d{2}-\d{2}/.test(a) && /\d{4}-\d{2}-\d{2}/.test(b)) {
             return new Date(a) - new Date(b); // Ordenar fechas
         }
         return 0; // Dejar sin cambios si los tipos son mixtos o no coinciden
     });
 }
 
-
+function addToUniqueValuesIfNotExists(uniqueValues, columna) {
+    // Verifica si globalActiveFilters[columna] es un Set y no está vacío
+    if (globalActiveFilters && typeof globalActiveFilters === 'object' && globalActiveFilters[columna] instanceof Set) {
+        const activeValues = globalActiveFilters[columna];
+  
+        // Identificar el tipo de la columna (si los valores de uniqueValues son números o cadenas)
+        const isNumericColumn = uniqueValues.every(val => typeof val === 'number'); // columna de años o semanas
+        const isStringColumn = uniqueValues.every(val => typeof val === 'string'); // columna de meses
+  
+        // Recorre el Set de valores activos y agrega aquellos que no estén en uniqueValues
+        activeValues.forEach(valor => {
+            // Si es una columna de números, aseguramos que el valor sea un número
+            if (isNumericColumn && typeof valor === 'string') {
+                valor = parseInt(valor, 10); // Convertimos la cadena a número si es necesario
+            }
+            // Si es una columna de meses (cadenas), aseguramos que el valor sea una cadena
+            if (isStringColumn && typeof valor === 'number') {
+                valor = valor.toString(); // Convertimos el número a cadena si es necesario
+            }
+  
+            // Comparar el valor con uniqueValues, manteniendo su tipo original
+            const exists = uniqueValues.some(v => v === valor);
+    
+            // Si el valor no existe, lo agregamos
+            if (!exists) {
+                uniqueValues.push(valor);
+            }
+        });
+    }
+  
+    // Devuelve uniqueValues (con o sin cambios)
+    return uniqueValues;
+};
+  
 document.addEventListener("keydown", function (event) {
     if (event.key === "Tab") {
         let activeElement = document.activeElement;

@@ -371,8 +371,8 @@ def create_app():
             params = []
             
             for column, value in row_data.items():
-                if value in ("", None):  # Si el valor es vacío o None
-                    conditions.append(f"{column} = ''")
+                if value is None or value == "":  
+                    conditions.append(f"{column} IS NULL ")
                 else:
                     conditions.append(f"{column} = %s")
                     params.append(value)
@@ -452,8 +452,8 @@ def create_app():
                 INSERT INTO OEEYDISPONIBILIDAD
                 SELECT * FROM temp_OEEYDISPONIBILIDAD;
 
-                INSERT INTO hpr_oee (LINEA, FECHA, AñO, MES, SEMANA, MIN, OEE)
-                SELECT LINEA, FECHA, AñO, MES, SEMANA, MIN, OEE
+                INSERT INTO hpr_oee (LINEA, TURNO, FECHA, AñO, MES, SEMANA, MIN, OEE)
+                SELECT LINEA, TURNO, FECHA, AñO, MES, SEMANA, MIN, OEE
                 FROM temp_hpr_oee t
                 WHERE NOT EXISTS (
                     SELECT 1 
@@ -468,9 +468,11 @@ def create_app():
                 """
                 cursor.execute(insert_query)
                 conn.commit()
+                
 
         except Exception as e:
             print(f"Error: {e}")
+            raise # Código 400 para error de cliente
             
         finally:
             # Cerrar la conexión
@@ -519,13 +521,6 @@ def create_app():
         columns = data.get('columns')  # Orden de las columnas
         rows = data.get('data')  # Filas de datos
 
-        # Validaciones iniciales
-        if not table_name or not columns or not rows:
-            return jsonify({'error': 'El JSON no cumple con el formarto, debe incluir table_name, columns y data'}), 400
-        
-        if not isinstance(columns, list) or not isinstance(rows, list):
-            return jsonify({'error': 'Columns debe ser una lista y data debe ser una lista de objetos JSON'}), 400
-
         try:
             # Sanitizar nombres de columnas (reemplazar caracteres especiales)
             sanitized_columns = [f'"{col}"' if any(c in col for c in '()% ') else col for col in columns]
@@ -540,11 +535,31 @@ def create_app():
             # Preparar la consulta de inserción dinámica
             column_names = ', '.join(sanitized_columns)
             value_placeholders = ', '.join(['%s'] * len(columns))
-            insert_query = f"""
-                INSERT INTO {table_name} ({column_names}) 
-                VALUES ({value_placeholders}) 
-                ON CONFLICT DO NOTHING
-            """
+
+            # Condición para "indicador_semanal_historico"
+            if table_name == 'indicador_semanal_historico':
+                # Definir las columnas de conflicto (ID, AÑO, SEMANA, PAROSMENORES)
+                conflict_columns = ['id', 'año', 'semana', 'parosmenores']
+                conflict_columns_str = ', '.join([f'"{col}"' for col in conflict_columns])
+
+                # Las columnas a actualizar en caso de conflicto
+                set_clause = ', '.join([f'"{col}" = EXCLUDED."{col}"' for col in sanitized_columns if col not in conflict_columns_str])
+
+                insert_query = f"""
+                    INSERT INTO {table_name} ({column_names}) 
+                    VALUES ({value_placeholders}) 
+                    ON CONFLICT ({conflict_columns_str}) DO UPDATE 
+                    SET {set_clause}
+                """
+
+            else:
+                # Si la tabla no es 'indicador_semanal_historico', se utiliza ON CONFLICT DO NOTHING
+                insert_query = f"""
+                    INSERT INTO {table_name} ({column_names}) 
+                    VALUES ({value_placeholders}) 
+                    ON CONFLICT DO NOTHING
+                """
+
             rows_inserted = 0
 
             # Insertar las filas
