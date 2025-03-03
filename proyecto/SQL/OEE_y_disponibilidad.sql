@@ -7,38 +7,39 @@ CREATE TABLE datos_maquinaria.OEEYDISPONIBILIDAD (
     Horas_planificadas FLOAT,
     OEE NUMERIC(5, 3)
 );
+
 --TRUNCATE TABLE OEEYDISPONIBILIDAD;
 
 --crear tabla 
 CREATE TABLE datos_maquinaria.HPR_OEE (
-    LINEA VARCHAR (255),
+    LINEA VARCHAR(255),
     FECHA DATE,
     A±O INT,
+    MES VARCHAR(255),
+    SEMANA INT,
     MIN FLOAT,
-    OEE FLOAT,
-    MES VARCHAR (255),
-    SEMANA INT
+    OEE FLOAT
 );
 --TRUNCATE TABLE HPR_OEE;
+
+CREATE INDEX idx_hpr ON HPR_OEE (A±O, MES, SEMANA);
+
 
 CREATE TABLE temp_OEEYDISPONIBILIDAD AS
 SELECT * FROM OEEYDISPONIBILIDAD LIMIT 0;
 
 
-CREATE INDEX idx_hpr_año_semana ON HPR_OEE (A±O, SEMANA);
+CREATE TABLE temp_HPR_OEE AS
+SELECT * FROM HPR_OEE LIMIT 0;
 
---cargar datos OEE
-\copy temp_OEEYDISPONIBILIDAD FROM 'C:\Users\matias\Desktop\CocaCola\tablas\OEEYDISPONIBILIDAD (13).csv' WITH DELIMITER ',' CSV HEADER ENCODING 'UTF8';
-
-INSERT INTO OEEYDISPONIBILIDAD
-SELECT * FROM temp_OEEYDISPONIBILIDAD;
+CREATE INDEX idx_temp_hpr ON temp_HPR_OEE (A±O, MES, SEMANA);
 
 
 --trabajar datos OEE
 CREATE OR REPLACE FUNCTION insert_into_hpr_oee()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO datos_maquinaria.HPR_OEE (LINEA, FECHA, A±O, MIN, OEE, MES, SEMANA)
+    INSERT INTO datos_maquinaria.temp_HPR_OEE (LINEA, FECHA, AñO, MES, SEMANA, MIN, OEE)
     SELECT 
         CASE 
             WHEN TRIM(NEW.Machine_Name) LIKE '%Ref Pet (Llenadora)%' THEN 'L3'
@@ -47,11 +48,11 @@ BEGIN
             ELSE NEW.Machine_Name
         END AS LINEA,
         NEW.Days_in_Calendar_DateTime AS FECHA,
-        EXTRACT(YEAR FROM NEW.Days_in_Calendar_DateTime) AS A±O,
-        round(CAST((NEW.Horas_planificadas::FLOAT * 60) as NUMERIC), 2) AS MIN,
-        NEW.OEE AS OEE,
-        TO_CHAR(NEW.Days_in_Calendar_DateTime, 'Mon') AS MES,
-        EXTRACT(WEEK FROM NEW.Days_in_Calendar_DateTime) AS SEMANA
+        EXTRACT(YEAR FROM NEW.Days_in_Calendar_DateTime) AS AñO,
+        LOWER(REPLACE(TO_CHAR(NEW.Days_in_Calendar_DateTime, 'TMMon'), '.', '')) AS MES,
+        EXTRACT(WEEK FROM NEW.Days_in_Calendar_DateTime) AS SEMANA,
+        round(CAST((NEW.Horas_planificadas::FLOAT * 60) AS NUMERIC), 2) AS MIN,
+        NEW.OEE AS OEE
     FROM datos_maquinaria.OEEYDISPONIBILIDAD
     WHERE NEW.Machine_Name = Machine_Name
       AND NEW.Days_in_Calendar_DateTime = Days_in_Calendar_DateTime
@@ -61,13 +62,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-INSERT INTO tabla_nombres (table_name)
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'datos_maquinaria';
-
 
 CREATE TRIGGER after_insert_oee_y_disponibilidad
 AFTER INSERT ON datos_maquinaria.OEEYDISPONIBILIDAD
 FOR EACH ROW
 EXECUTE FUNCTION insert_into_hpr_oee();
+
+
+--insertar datos que no estan 
+INSERT INTO hpr_oee (LINEA, FECHA, AñO, MES, SEMANA, MIN, OEE)
+SELECT LINEA, FECHA, AñO, MES, SEMANA, MIN, OEE
+FROM temp_hpr_oee t
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM hpr_oee h
+    WHERE h.AñO = t.AñO 
+    AND h.MES = t.MES 
+    AND h.SEMANA = t.SEMANA
+);

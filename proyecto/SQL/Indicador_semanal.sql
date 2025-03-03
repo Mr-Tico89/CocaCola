@@ -44,11 +44,6 @@ FOR EACH ROW
 EXECUTE FUNCTION limit_rows();
 
 
-
-
-
-
-
 CREATE TABLE datos_maquinaria.INDICADOR_SEMANAL_HISTORICO (
     ID VARCHAR(255) NOT NULL,
     A±O INT NOT NULL,
@@ -67,9 +62,16 @@ CREATE TABLE datos_maquinaria.INDICADOR_SEMANAL_HISTORICO (
 CREATE INDEX idx_indicador_ID_año_semana ON INDICADOR_SEMANAL_HISTORICO (ID, A±O, SEMANA);
 
 
+CREATE TABLE datos_maquinaria.INDICADOR_SEMANAL_FECHA (
+    fecha VARCHAR (255)
+);
 
-\COPY INDICADOR_SEMANAL_HISTORICO FROM 'C:\Users\matias\Desktop\CocaCola\tablas muestras\INDICADORES SEMANA.csv' with DELIMITER ',' CSV HEADER ENCODING 'UTF8';
+-- Insertar la fila inicial si no existe.
+INSERT INTO INDICADOR_SEMANAL_FECHA (A±O, MES, SEMANA)
+VALUES (2025, 'ene', 2);
 
 
-UPDATE INDICADOR_SEMANAL_HISTORICO
-SET PAROSMENORES = FALSE;
+
+--Actualizar la fila existente: Cuando necesites actualizar la fila con nuevos valores, 
+--puedes usar un UPDATE. Esto te permitirá mantener solo una fila en la tabla y cambiar su 
+--contenido según sea necesario:

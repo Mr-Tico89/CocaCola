@@ -31,7 +31,7 @@
         <div class="select-button-container">
             <label for="filterSelect" class="styled-label"> Seleccionar tabla:</label>
 
-            <select id="table-select" class="table-select" onchange="loadTableData('table-container-tab1', 'Tab1', this.value, true ); showDownloadButton();">
+            <select id="table-select" class="table-select" onchange="loadTableData('table-container-tab1', 'Tab1', this.value, true ); showDownloadButton(this.value);  updateDate(); clearGlobalActiveFilters(globalActiveFilters);">
                 <option value="">Select a table</option>
             </select>
 
@@ -46,6 +46,11 @@
             </div>
 
         </div>
+
+        <div id="date" class="date-container" style="display: none;">
+            <span id="dateInfo1" class="date-label"> Año: 0000 Mes: 000 Semana: 00 </span>
+        </div>
+
         <div id="table-container-tab1" class="table-container"></div>
     </div>
     
@@ -89,8 +94,8 @@
 
             <label class="styled-Advice"> 
                 <span style="color: red;"><strong>IMPORTANTE: </strong></span>
-                Si quiere actualizar la tabla indicadores semanales, debe tener selecionado
-                un filtro por cada categoria
+                Si quiere guardar el indicador para usarlo en el grafico de powerBI debe SOLO
+                ocupar el filtro AÑO y SEMANA.
             </label>
 
                 <div id="filter-año"> </div>
@@ -101,6 +106,10 @@
 
             <button id="Gen-button" class="extra-button">Generar Datos</button>
 
+        </div>
+
+        <div id="date4" class="date-container" >
+            <span id="dateInfo4" class="date-label"> Filtros usados: </span>
         </div>
 
         <div id="Indicador-container" class="table-container"></div>
@@ -124,14 +133,17 @@
                 <button id="upload-button" class="extra-button" type="submit">Subir Archivo</button>
             </form>
 
-            <div id="upload-status"></div>
+            
 
+        </div>
+        <div class="select-button-container">
+            <div id="upload-status"></div>
         </div>
     </div>
 
 
     <div id="Tab6" class="tabcontent">
-
+        
         <div class="select-button-container">
             
             <label class="styled-Advice"> 
@@ -140,9 +152,8 @@
             </label>
 
         </div>
-
         <div class="select-button-container">
-            <button onclick="cargarPowerBI()" class="extra-button">Descargar Datos y abrir power BI</button>
+            <button onclick="cargarPowerBI()" class="extra-button">Abrir archivo de power BI</button>
         </div>
     
     </div>

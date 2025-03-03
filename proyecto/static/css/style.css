@@ -62,6 +62,8 @@
     gap: 10px; /* Espacio entre los elementos */
 }
 
+
+
 .select-button-container label {
     margin-right: 10px; /* Espacio entre el label y el primer select */
 }
@@ -140,6 +142,7 @@
     padding: 6px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    min-width: 200px;
 }
 
 /* Estilo para selects */
@@ -175,6 +178,21 @@
 }
 
 .dropdown-container .dropdown-button:hover {
+    background-color: #c70000;
+}
+/* Estilo para el botón del filtro */
+.dropdown-container .active-button {
+    background-color: #fe001a;
+    color: white;
+    border: none;
+    padding: 2px 2px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px
+    
+}
+
+.dropdown-container .active-button:hover {
     background-color: #c70000;
 }
 
@@ -418,4 +436,29 @@
 
 .filter-container .filter-item input[type="checkbox"] {
     margin-right: 6px;
+}
+
+.date-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    margin-top: 10px; 
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    gap: 10px; /* Espacio entre los elementos */
+}
+
+.date-label {
+    font-size: 16px; /* Tamaño de fuente */
+    font-weight: bold; /* Negrita */
+    color: #333; /* Color del texto */
+    padding: 5px 10px; /* Espaciado interno */
+    background-color: #f0f0f0; /* Color de fondo */
+    border-radius: 5px; /* Bordes redondeados */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra */
+    margin: 10px; /* Agrega 20px de margen en todos los lados */
 }
